@@ -5,6 +5,7 @@ import { testAPIConnectivity } from '@/utils/test-api'
 import { DeveloperCard } from '@/components/DeveloperCard'
 import { DeveloperTable } from '@/components/DeveloperTable'
 import { DeveloperFilters } from '@/components/DeveloperFilters'
+import { SDKDebugPanel } from '@/components/SDKDebugPanel'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader, Grid, Table as TableIcon, Search, AlertCircle, Zap, Wrench } from 'lucide-react'
@@ -18,6 +19,42 @@ export default function DeveloperSearch() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
+
+  // Log SDK initialization on mount
+  useEffect(() => {
+    console.log('='.repeat(70))
+    console.log('🔍 DeveloperSearch Component Mounted')
+    console.log('='.repeat(70))
+    
+    // Check environment
+    const apiKey = import.meta.env.VITE_BOUNTYLAB_API_KEY
+    console.log('📋 Environment Check:')
+    console.log('  - VITE_BOUNTYLAB_API_KEY:', apiKey ? `✅ Present (${apiKey.length} chars)` : '❌ MISSING')
+    console.log('  - API Key prefix:', apiKey ? apiKey.substring(0, 15) + '...' : 'N/A')
+    
+    // Test import
+    import('@bountylab/bountylab').then((module) => {
+      console.log('📦 SDK Import:', '✅ Success')
+      const Bountylab = module.default
+      
+      if (apiKey) {
+        try {
+          const client = new Bountylab({ apiKey })
+          console.log('🚀 SDK Instance:', { 
+            created: true,
+            hasSearchUsers: !!client.searchUsers,
+            hasSearchMethod: !!client.searchUsers?.search
+          })
+        } catch (e) {
+          console.error('🚀 SDK Instance:', 'Error -', e instanceof Error ? e.message : String(e))
+        }
+      }
+    }).catch((e) => {
+      console.log('📦 SDK Import:', '❌ Failed -', e.message)
+    })
+    
+    console.log('='.repeat(70))
+  }, [])
 
   const handleSearch = async () => {
     console.log('🔍 Search button clicked', { searchQuery, filters })
@@ -284,6 +321,7 @@ export default function DeveloperSearch() {
           </div>
         </div>
       </div>
+      <SDKDebugPanel />
     </div>
   )
 }

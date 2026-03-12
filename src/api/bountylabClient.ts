@@ -1,26 +1,31 @@
-import Bountylab from '@bountylab/bountylab'
+﻿import Bountylab from '@bountylab/bountylab'
 import { Developer, Repository, SearchFilters } from '../types/developer'
 
-const API_KEY = import.meta.env.VITE_BOUNTYLAB_API_KEY
-
-if (!API_KEY) {
-  console.warn(
-    'VITE_BOUNTYLAB_API_KEY environment variable is not set. API calls will fail.'
-  )
+// Get API key - this is called lazily when the client is first used
+function getAPIKey(): string {
+  const key = import.meta.env.VITE_BOUNTYLAB_API_KEY
+  
+  if (!key) {
+    console.warn(
+      'VITE_BOUNTYLAB_API_KEY environment variable is not set. API calls will fail.'
+    )
+  }
+  
+  return key || ''
 }
 
 // Intercept fetch to log all API requests
 const originalFetch = globalThis.fetch
 globalThis.fetch = function(...args: any[]) {
   const [resource, config] = args
-  console.log('🔗 API Request:', {
+  console.log('ðŸ”— API Request:', {
     url: resource,
     method: config?.method || 'GET',
     headerAuth: config?.headers?.Authorization ? 'Bearer ' + config.headers.Authorization.substring(7, 17) + '...' : 'none',
   })
   
   return originalFetch.apply(globalThis, args).then((response: Response) => {
-    console.log('📡 API Response:', {
+    console.log('ðŸ“¡ API Response:', {
       url: resource,
       status: response.status,
       statusText: response.statusText,
@@ -28,7 +33,7 @@ globalThis.fetch = function(...args: any[]) {
     })
     return response
   }).catch((error: Error) => {
-    console.error('❌ API Request Failed:', {
+    console.error('âŒ API Request Failed:', {
       url: resource,
       error: error.message,
     })
@@ -46,28 +51,32 @@ interface PaginatedResponse<T> {
 
 class BountyLabClient {
   private client: Bountylab
+  private apiKey: string
 
   constructor() {
+    // Get API key lazily when the client is instantiated
+    this.apiKey = getAPIKey()
+    
     console.log('='.repeat(60))
-    console.log('🔧 BountyLab CLIENT INITIALIZATION')
+    console.log('ðŸ”§ BountyLab CLIENT INITIALIZATION')
     console.log('='.repeat(60))
     console.log('Step 1: Check API Key')
     console.log({
-      hasApiKey: !!API_KEY,
-      apiKeyLength: API_KEY?.length,
-      apiKeyPrefix: API_KEY ? API_KEY.substring(0, 15) + '...' : 'MISSING ❌',
+      hasApiKey: !!this.apiKey,
+      apiKeyLength: this.apiKey?.length,
+      apiKeyPrefix: this.apiKey ? this.apiKey.substring(0, 15) + '...' : 'MISSING âŒ',
       environment: typeof window !== 'undefined' ? 'BROWSER' : 'NODE',
     })
 
-    if (!API_KEY) {
-      console.error('❌ CRITICAL: API_KEY is not set!')
+    if (!this.apiKey) {
+      console.error('âŒ CRITICAL: API_KEY is not set!')
       console.error('Check: import.meta.env.VITE_BOUNTYLAB_API_KEY')
     }
 
     // Initialize SDK - it automatically handles the API endpoint
     console.log('Step 2: Initialize Bountylab SDK')
     this.client = new Bountylab({
-      apiKey: API_KEY || '',
+      apiKey: this.apiKey || '',
     })
 
     console.log('Step 3: Verify SDK methods exist')
@@ -80,10 +89,10 @@ class BountyLabClient {
     })
 
     if (!this.client.searchUsers?.search) {
-      console.error('❌ CRITICAL: SDK missing searchUsers.search method!')
+      console.error('âŒ CRITICAL: SDK missing searchUsers.search method!')
       console.error('Full client keys:', Object.keys(this.client || {}).sort())
     } else {
-      console.log('✅ SDK initialized successfully with all required methods')
+      console.log('âœ… SDK initialized successfully with all required methods')
     }
     
     console.log('='.repeat(60))
@@ -100,24 +109,24 @@ class BountyLabClient {
     per_page: number = 20
   ): Promise<PaginatedResponse<Developer>> {
     console.log('\n' + '='.repeat(60))
-    console.log('🔍 DEVELOPER SEARCH CALLED')
+    console.log('ðŸ” DEVELOPER SEARCH CALLED')
     console.log('='.repeat(60))
     console.log('Input:', { query, filters, page, per_page })
 
     try {
       // Check 1: API Key
       console.log('Check 1: API Key')
-      if (!API_KEY) {
-        throw new Error('VITE_BOUNTYLAB_API_KEY environment variable is not set. Configure it in Vercel dashboard under Settings → Environment Variables.')
+      if (!this.apiKey) {
+        throw new Error('VITE_BOUNTYLAB_API_KEY environment variable is not set. Configure it in Vercel dashboard under Settings â†’ Environment Variables.')
       }
-      console.log('✅ API Key present:', API_KEY.substring(0, 15) + '...')
+      console.log('âœ… API Key present:', this.apiKey.substring(0, 15) + '...')
 
       // Check 2: Query validation
       console.log('Check 2: Query validation')
       if (!query || query.trim().length === 0) {
         throw new Error('Search query cannot be empty')
       }
-      console.log('✅ Query valid:', query.trim())
+      console.log('âœ… Query valid:', query.trim())
 
       // Check 3: Client status
       console.log('Check 3: SDK client status')
@@ -131,7 +140,7 @@ class BountyLabClient {
       if (!this.client?.searchUsers?.search) {
         throw new Error('SDK client.searchUsers.search is not available!')
       }
-      console.log('✅ SDK client ready')
+      console.log('âœ… SDK client ready')
 
       // Check 4: Build parameters
       console.log('Check 4: Build API parameters')
@@ -153,7 +162,7 @@ class BountyLabClient {
       })
       
       const duration = Date.now() - startTime
-      console.log(`✅ API CALL SUCCESSFUL (took ${duration}ms)`)
+      console.log(`âœ… API CALL SUCCESSFUL (took ${duration}ms)`)
 
       // Check 6: Validate response
       console.log('Check 6: Validate response structure')
@@ -170,11 +179,11 @@ class BountyLabClient {
       const allUsers = response.users || []
       
       if (!Array.isArray(allUsers)) {
-        console.warn('⚠️ Response users is not an array:', { allUsers, response })
+        console.warn('âš ï¸ Response users is not an array:', { allUsers, response })
         throw new Error(`Invalid response format from API: expected users array`)
       }
 
-      console.log(`✅ Response valid: ${allUsers.length} users returned`)
+      console.log(`âœ… Response valid: ${allUsers.length} users returned`)
 
       // Check 7: Process results
       console.log('Check 7: Processing results...')
@@ -203,7 +212,7 @@ class BountyLabClient {
         total_pages: Math.ceil(allUsers.length / per_page),
       }
 
-      console.log('✅ SEARCH COMPLETE')
+      console.log('âœ… SEARCH COMPLETE')
       console.log({
         itemsReturned: items.length,
         totalPages: result.total_pages,
@@ -215,7 +224,7 @@ class BountyLabClient {
     } catch (error) {
       console.log('Check X: ERROR HANDLING')
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      console.error('❌ ERROR:', errorMessage)
+      console.error('âŒ ERROR:', errorMessage)
       console.error('Full error object:', error)
       console.error('Error type:', error?.constructor?.name)
       if (error instanceof Error) {
@@ -226,14 +235,14 @@ class BountyLabClient {
       
       // Provide specific guidance based on error type
       if (errorMessage.includes('failed') || errorMessage.includes('fetch')) {
-        console.error('🔍 Network/fetch error - possible causes:', {
+        console.error('ðŸ” Network/fetch error - possible causes:', {
           '1. API key invalid': 'Check if VITE_BOUNTYLAB_API_KEY is correct in Vercel dashboard',
           '2. API endpoint unreachable': 'Verify BountyLab API service is running',
           '3. CORS issue': 'Check browser Network tab for CORS errors',
           '4. SDK base URL wrong': 'Verify SDK is configured with correct base domain',
         })
       } else if (errorMessage.includes('NOT_FOUND') || errorMessage.includes('404')) {
-        console.error('🔍 404 error - possible causes:', {
+        console.error('ðŸ” 404 error - possible causes:', {
           '1. Wrong API endpoint': 'SDK may be using incorrect base URL',
           '2. API key rejected': 'Check if API key is valid for this API',
           '3. Service endpoint changed': 'Verify BountyLab API hasn\'t changed domains',
@@ -310,7 +319,7 @@ class BountyLabClient {
    */
   async getDeveloper(login: string): Promise<Developer> {
     try {
-      if (!API_KEY) {
+      if (!this.apiKey) {
         throw new Error('API key not configured.')
       }
 
@@ -347,10 +356,10 @@ class BountyLabClient {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('❌ Get developer failed:', {
+      console.error('âŒ Get developer failed:', {
         login,
         error: errorMessage,
-        hasApiKey: !!API_KEY,
+        hasApiKey: !!this.apiKey,
       })
       throw new Error(`Get developer failed: ${errorMessage}`)
     }
@@ -365,7 +374,7 @@ class BountyLabClient {
     per_page: number = 30
   ): Promise<PaginatedResponse<Repository>> {
     try {
-      if (!API_KEY) {
+      if (!this.apiKey) {
         throw new Error('API key not configured.')
       }
 
@@ -409,7 +418,7 @@ class BountyLabClient {
       console.error('Get user repositories failed:', {
         login,
         error: errorMessage,
-        hasApiKey: !!API_KEY,
+        hasApiKey: !!this.apiKey,
       })
       throw new Error(`Get user repositories failed: ${errorMessage}`)
     }
@@ -432,8 +441,8 @@ class BountyLabClient {
     per_page: number = 20
   ): Promise<PaginatedResponse<Repository>> {
     try {
-      if (!API_KEY) {
-        throw new Error('VITE_BOUNTYLAB_API_KEY environment variable is not set. Configure it in Vercel dashboard under Settings → Environment Variables.')
+      if (!this.apiKey) {
+        throw new Error('VITE_BOUNTYLAB_API_KEY environment variable is not set. Configure it in Vercel dashboard under Settings â†’ Environment Variables.')
       }
 
       if (!query || query.trim().length === 0) {
@@ -506,16 +515,16 @@ class BountyLabClient {
       const errorDetails = {
         query: query?.trim(),
         error: errorMessage,
-        hasApiKey: !!API_KEY,
+        hasApiKey: !!this.apiKey,
         errorType: error?.constructor?.name,
         errorStack: error instanceof Error ? error.stack : undefined,
       }
-      console.error('❌ Repository search failed:', errorDetails)
+      console.error('âŒ Repository search failed:', errorDetails)
       
       if (errorMessage.includes('failed') || errorMessage.includes('fetch')) {
-        console.error('🔍 Network/fetch error - check API key and network in browser DevTools')
+        console.error('ðŸ” Network/fetch error - check API key and network in browser DevTools')
       } else if (errorMessage.includes('NOT_FOUND') || errorMessage.includes('404')) {
-        console.error('🔍 404 error - SDK endpoint may be incorrect. Check BountyLab API configuration.')
+        console.error('ðŸ” 404 error - SDK endpoint may be incorrect. Check BountyLab API configuration.')
       }
       
       throw new Error(`Search failed: ${errorMessage}`)
@@ -577,7 +586,7 @@ class BountyLabClient {
    */
   async getRepository(owner: string, repo: string): Promise<Repository> {
     try {
-      if (!API_KEY) {
+      if (!this.apiKey) {
         throw new Error('API key not configured.')
       }
 
@@ -612,11 +621,11 @@ class BountyLabClient {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('❌ Get repository failed:', {
+      console.error('âŒ Get repository failed:', {
         owner,
         repo,
         error: errorMessage,
-        hasApiKey: !!API_KEY,
+        hasApiKey: !!this.apiKey,
       })
       throw new Error(`Get repository failed: ${errorMessage}`)
     }
@@ -632,7 +641,7 @@ class BountyLabClient {
     per_page: number = 30
   ): Promise<PaginatedResponse<Developer>> {
     try {
-      if (!API_KEY) {
+      if (!this.apiKey) {
         throw new Error('API key not configured.')
       }
 
@@ -681,7 +690,7 @@ class BountyLabClient {
         owner,
         repo,
         error: errorMessage,
-        hasApiKey: !!API_KEY,
+        hasApiKey: !!this.apiKey,
       })
       throw new Error(`Get repository contributors failed: ${errorMessage}`)
     }
@@ -695,7 +704,7 @@ class BountyLabClient {
     timeframe: 'daily' | 'weekly' | 'monthly' = 'weekly'
   ): Promise<Developer[]> {
     try {
-      if (!API_KEY) {
+      if (!this.apiKey) {
         throw new Error('API key not configured.')
       }
 
@@ -746,7 +755,7 @@ class BountyLabClient {
         language,
         timeframe,
         error: errorMessage,
-        hasApiKey: !!API_KEY,
+        hasApiKey: !!this.apiKey,
       })
       throw new Error(`Get trending developers failed: ${errorMessage}`)
     }
@@ -757,7 +766,7 @@ class BountyLabClient {
    */
   async getDeveloperByEmail(email: string): Promise<Developer> {
     try {
-      if (!API_KEY) {
+      if (!this.apiKey) {
         throw new Error('API key not configured.')
       }
 
@@ -791,7 +800,7 @@ class BountyLabClient {
       console.error('Get developer by email failed:', {
         email,
         error: errorMessage,
-        hasApiKey: !!API_KEY,
+        hasApiKey: !!this.apiKey,
       })
       throw new Error(`Get developer by email failed: ${errorMessage}`)
     }
@@ -803,7 +812,7 @@ class BountyLabClient {
    */
   async getBestEmailByLogin(login: string): Promise<string | null> {
     try {
-      if (!API_KEY) {
+      if (!this.apiKey) {
         throw new Error('API key not configured.')
       }
 
@@ -821,7 +830,7 @@ class BountyLabClient {
       console.error('Get best email failed:', {
         login,
         error: errorMessage,
-        hasApiKey: !!API_KEY,
+        hasApiKey: !!this.apiKey,
       })
       // Return null instead of throwing - email lookup is optional
       return null
@@ -833,7 +842,7 @@ class BountyLabClient {
    */
   async getBestEmailsByLogins(logins: string[]): Promise<Map<string, string | null>> {
     try {
-      if (!API_KEY) {
+      if (!this.apiKey) {
         throw new Error('API key not configured.')
       }
 
@@ -852,7 +861,7 @@ class BountyLabClient {
       console.error('Get best emails failed:', {
         loginsCount: logins.length,
         error: errorMessage,
-        hasApiKey: !!API_KEY,
+        hasApiKey: !!this.apiKey,
       })
       // Return empty map instead of throwing - email lookup is optional
       return new Map()
@@ -860,4 +869,22 @@ class BountyLabClient {
   }
 }
 
-export const bountylabClient = new BountyLabClient()
+// Lazy-load the singleton client instance when first accessed
+let _bountylabClientInstance: BountyLabClient | null = null
+
+// Create a proxy that lazily initializes the client on first access
+export const bountylabClient = new Proxy({} as BountyLabClient, {
+  get(target, prop) {
+    if (!_bountylabClientInstance) {
+      _bountylabClientInstance = new BountyLabClient()
+    }
+    return (target as any)[prop] || (_bountylabClientInstance as any)[prop]
+  },
+  apply() {
+    if (!_bountylabClientInstance) {
+      _bountylabClientInstance = new BountyLabClient()
+    }
+    return _bountylabClientInstance
+  },
+}) as any
+
