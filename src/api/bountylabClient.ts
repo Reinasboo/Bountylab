@@ -21,8 +21,21 @@ class BountyLabClient {
   private client: Bountylab
 
   constructor() {
+    console.log('Initializing BountyLab client with:', {
+      hasApiKey: !!API_KEY,
+      apiKeyLength: API_KEY?.length,
+      apiKeyPrefix: API_KEY ? API_KEY.substring(0, 10) + '...' : 'none',
+    })
+
     this.client = new Bountylab({
       apiKey: API_KEY || '',
+    })
+
+    console.log('BountyLab client initialized:', {
+      clientType: typeof this.client,
+      hasSearchUsers: !!this.client?.searchUsers,
+      hasSearchRepos: !!this.client?.searchRepos,
+      hasRaw: !!this.client?.raw,
     })
   }
 
@@ -112,12 +125,33 @@ class BountyLabClient {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      console.error('❌ Developer search failed:', {
+      const errorDetails = {
         query: query?.trim(),
         error: errorMessage,
         hasApiKey: !!API_KEY,
-        stack: error instanceof Error ? error.stack : undefined,
-      })
+        errorType: error?.constructor?.name,
+        errorStack: error instanceof Error ? error.stack : undefined,
+        errorCause: (error as any)?.cause,
+        fullError: error,
+      }
+      console.error('❌ Developer search failed:', errorDetails)
+      
+      // Provide specific guidance based on error type
+      if (errorMessage.includes('failed') || errorMessage.includes('fetch')) {
+        console.error('🔍 Network/fetch error - possible causes:', {
+          '1. API key invalid': 'Check if VITE_BOUNTYLAB_API_KEY is correct in Vercel dashboard',
+          '2. API endpoint unreachable': 'Verify BountyLab API service is running',
+          '3. CORS issue': 'Check browser Network tab for CORS errors',
+          '4. SDK base URL wrong': 'Verify SDK is configured with correct base domain',
+        })
+      } else if (errorMessage.includes('NOT_FOUND') || errorMessage.includes('404')) {
+        console.error('🔍 404 error - possible causes:', {
+          '1. Wrong API endpoint': 'SDK may be using incorrect base URL',
+          '2. API key rejected': 'Check if API key is valid for this API',
+          '3. Service endpoint changed': 'Verify BountyLab API hasn\'t changed domains',
+        })
+      }
+      
       throw new Error(`Search failed: ${errorMessage}`)
     }
   }
@@ -372,12 +406,21 @@ class BountyLabClient {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      console.error('❌ Repository search failed:', {
+      const errorDetails = {
         query: query?.trim(),
         error: errorMessage,
         hasApiKey: !!API_KEY,
-        stack: error instanceof Error ? error.stack : undefined,
-      })
+        errorType: error?.constructor?.name,
+        errorStack: error instanceof Error ? error.stack : undefined,
+      }
+      console.error('❌ Repository search failed:', errorDetails)
+      
+      if (errorMessage.includes('failed') || errorMessage.includes('fetch')) {
+        console.error('🔍 Network/fetch error - check API key and network in browser DevTools')
+      } else if (errorMessage.includes('NOT_FOUND') || errorMessage.includes('404')) {
+        console.error('🔍 404 error - SDK endpoint may be incorrect. Check BountyLab API configuration.')
+      }
+      
       throw new Error(`Search failed: ${errorMessage}`)
     }
   }
