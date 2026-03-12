@@ -5,6 +5,8 @@
   "description": "GitHub developer sourcing platform powered by BountyLab API",
   "scripts": {
     "dev": "vite",
+    "dev:proxy": "node server.mjs",
+    "dev:full": "concurrently \"npm run dev\" \"npm run dev:proxy\"",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
@@ -32,10 +34,16 @@
     "zustand": "^4.4.1"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.6",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
+    "concurrently": "^8.2.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2",
     "postcss": "^8.4.32",
     "terser": "^5.46.0",
     "typescript": "^5.3.3",

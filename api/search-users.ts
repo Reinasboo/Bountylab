@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import Bountylab from '@bountylab/bountylab'
 
 export default async function handler(
   request: VercelRequest,
@@ -22,40 +23,20 @@ export default async function handler(
   }
 
   try {
-    // Call BountyLab API from backend (no CORS issues)
-    const apiResponse = await fetch('https://api.bountylab.io/search/users', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query,
-        maxResults: maxResults || 20,
-        ...(filters && { filters })
-      })
+    // Use BountyLab SDK directly
+    const client = new Bountylab({ apiKey })
+    const data = await client.searchUsers.search({
+      query,
+      maxResults: maxResults || 20,
+      ...(filters && { filters })
     })
 
-    if (!apiResponse.ok) {
-      const errorData = await apiResponse.json().catch(() => ({}))
-      console.error('BountyLab API error:', {
-        status: apiResponse.status,
-        statusText: apiResponse.statusText,
-        error: errorData
-      })
-      return response.status(apiResponse.status).json({
-        error: `BountyLab API error: ${apiResponse.statusText}`,
-        details: errorData
-      })
-    }
-
-    const data = await apiResponse.json()
     return response.status(200).json(data)
 
   } catch (error) {
     console.error('Search proxy error:', error)
     return response.status(500).json({
-      error: 'Failed to fetch from BountyLab API',
+      error: 'Failed to search users',
       details: error instanceof Error ? error.message : String(error)
     })
   }

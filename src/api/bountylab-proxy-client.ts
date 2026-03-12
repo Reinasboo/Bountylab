@@ -52,7 +52,17 @@ export interface RawReposResponse {
 }
 
 class BountyLabProxyClient {
-  private baseUrl = typeof window !== 'undefined' ? '' : 'http://localhost:3000'
+  private baseUrl: string
+
+  constructor() {
+    // In development, use local proxy server on port 3001
+    // In production, use relative /api paths (Vercel Functions)
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      this.baseUrl = 'http://localhost:3001'
+    } else {
+      this.baseUrl = ''
+    }
+  }
 
   async searchUsers(query: string, maxResults: number = 20, filters?: any): Promise<SearchUsersResponse> {
     const response = await fetch(`${this.baseUrl}/api/search-users`, {

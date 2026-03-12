@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import Bountylab from '@bountylab/bountylab'
 
 export default async function handler(
   request: VercelRequest,
@@ -20,30 +21,16 @@ export default async function handler(
   }
 
   try {
-    const apiResponse = await fetch('https://api.bountylab.io/raw/repos/byFullname', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ fullNames })
-    })
+    // Use BountyLab SDK directly
+    const client = new Bountylab({ apiKey })
+    const data = await client.rawRepos.byFullname({ fullNames })
 
-    if (!apiResponse.ok) {
-      const errorData = await apiResponse.json().catch(() => ({}))
-      return response.status(apiResponse.status).json({
-        error: `BountyLab API error: ${apiResponse.statusText}`,
-        details: errorData
-      })
-    }
-
-    const data = await apiResponse.json()
     return response.status(200).json(data)
 
   } catch (error) {
-    console.error('Get repos by fullname proxy error:', error)
+    console.error('Raw repos error:', error)
     return response.status(500).json({
-      error: 'Failed to fetch from BountyLab API',
+      error: 'Failed to get repos',
       details: error instanceof Error ? error.message : String(error)
     })
   }
