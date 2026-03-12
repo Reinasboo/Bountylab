@@ -18,13 +18,14 @@ export default async function handler(
   }
 
   const apiKey = process.env.VITE_BOUNTYLAB_API_KEY
+  const apiBaseUrl = process.env.VITE_BOUNTYLAB_API_BASE_URL || 'https://api.bountylab.io'
   if (!apiKey) {
     return response.status(500).json({ error: 'API key not configured' })
   }
 
   try {
     // Use BountyLab SDK directly
-    const client = new Bountylab({ apiKey })
+    const client = new Bountylab({ apiKey, baseUrl: apiBaseUrl })
     const data = await client.searchUsers.search({
       query,
       maxResults: maxResults || 20,

@@ -14,9 +14,10 @@ app.use(cors())
 app.use(express.json())
 
 const API_KEY = process.env.VITE_BOUNTYLAB_API_KEY || 'gMolfPrnxsbeTBJQGfydcAilRkNYHwyHxBalifYjITEaUJieRABauFICmIAYGtbj'
+const API_BASE_URL = process.env.VITE_BOUNTYLAB_API_BASE_URL || 'https://api.bountylab.io'
 
 // Initialize SDK once
-const client = new Bountylab({ apiKey: API_KEY })
+const client = new Bountylab({ apiKey: API_KEY, baseUrl: API_BASE_URL })
 
 // Search users proxy
 app.post('/api/search-users', async (req, res) => {
