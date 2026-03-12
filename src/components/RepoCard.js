@@ -1,0 +1,14 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Star, GitFork, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+export function RepoCard({ repo }) {
+    const navigate = useNavigate();
+    const handleContributorClick = (login) => {
+        navigate(`/developer/${login}`);
+    };
+    return (_jsxs(Card, { className: "overflow-hidden transition-all hover:shadow-lg", children: [_jsx(CardHeader, { className: "pb-3", children: _jsxs("div", { className: "flex items-start justify-between gap-2", children: [_jsxs("div", { className: "flex-1 min-w-0", children: [_jsx("h3", { className: "font-semibold text-base truncate", children: repo.name }), _jsx("p", { className: "text-sm text-muted-foreground truncate", children: repo.full_name })] }), repo.language && _jsx(Badge, { variant: "outline", children: repo.language })] }) }), _jsxs(CardContent, { className: "space-y-3", children: [repo.description && (_jsx("p", { className: "text-sm text-muted-foreground line-clamp-2", children: repo.description })), _jsxs("div", { className: "flex gap-4 text-sm border-t pt-3", children: [_jsxs("div", { className: "flex items-center gap-1", children: [_jsx(Star, { size: 16, className: "text-yellow-500" }), _jsx("span", { className: "font-semibold", children: repo.stargazers_count.toLocaleString() })] }), _jsxs("div", { className: "flex items-center gap-1", children: [_jsx(GitFork, { size: 16, className: "text-muted-foreground" }), _jsx("span", { className: "font-semibold", children: repo.forks_count.toLocaleString() })] })] }), repo.contributors && repo.contributors.length > 0 && (_jsxs("div", { className: "space-y-2 border-t pt-3", children: [_jsx("p", { className: "text-xs font-semibold text-muted-foreground", children: "Top Contributors" }), _jsx("div", { className: "flex gap-1 flex-wrap", children: repo.contributors.slice(0, 5).map(contributor => (_jsxs(Button, { variant: "ghost", size: "sm", className: "h-8 px-2", onClick: () => handleContributorClick(contributor.login), children: [_jsxs(Avatar, { className: "h-6 w-6 mr-1", children: [_jsx(AvatarImage, { src: contributor.avatar_url }), _jsx(AvatarFallback, { className: "text-xs", children: contributor.login.slice(0, 1).toUpperCase() })] }), _jsx("span", { className: "text-xs", children: contributor.login })] }, contributor.id))) })] })), _jsx(Button, { asChild: true, variant: "outline", className: "w-full", children: _jsxs("a", { href: repo.url, target: "_blank", rel: "noopener noreferrer", children: [_jsx(ExternalLink, { size: 16, className: "mr-2" }), "Open on GitHub"] }) })] })] }));
+}
