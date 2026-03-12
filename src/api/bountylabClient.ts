@@ -132,10 +132,10 @@ class BountyLabClient {
       const startIdx = (page - 1) * per_page
       const endIdx = startIdx + per_page
       const items = allUsers.slice(startIdx, endIdx).map((user: any) => ({
-        id: user.id,
+        id: user.githubId || user.id,
         login: user.login,
-        name: user.name,
-        avatar_url: user.avatarUrl,
+        name: user.displayName,
+        avatar_url: `https://avatars.githubusercontent.com/${user.login}`,
         bio: user.bio,
         company: user.company,
         location: user.location,
@@ -276,8 +276,8 @@ class BountyLabClient {
       return {
         id: user.id,
         login: user.login,
-        name: user.name,
-        avatar_url: user.avatarUrl,
+        name: user.displayName,
+        avatar_url: `https://avatars.githubusercontent.com/${user.login}`,
         bio: user.bio,
         company: user.company,
         location: user.location,
@@ -596,10 +596,10 @@ class BountyLabClient {
       const endIdx = startIdx + per_page
 
       const items = allUsers.slice(startIdx, endIdx).map((user: any) => ({
-        id: user.id,
+        id: user.githubId || user.id,
         login: user.login,
-        name: user.name,
-        avatar_url: user.avatarUrl,
+        name: user.displayName,
+        avatar_url: `https://avatars.githubusercontent.com/${user.login}`,
         bio: user.bio,
         company: user.company,
         location: user.location,
@@ -669,10 +669,10 @@ class BountyLabClient {
       })
 
       return response.users?.map((user: any) => ({
-        id: user.id,
+        id: user.githubId || user.id,
         login: user.login,
-        name: user.name,
-        avatar_url: user.avatarUrl,
+        name: user.displayName,
+        avatar_url: `https://avatars.githubusercontent.com/${user.login}`,
         bio: user.bio,
         company: user.company,
         location: user.location,
