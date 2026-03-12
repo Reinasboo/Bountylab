@@ -56,9 +56,20 @@ class BountyLabProxyClient {
 
   constructor() {
     // In development, use local proxy server on port 3001
-    // In production, use relative /api paths (Vercel Functions)
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      this.baseUrl = 'http://localhost:3001'
+    // Support localhost, 127.0.0.1, and any local hostname
+    if (typeof window !== 'undefined') {
+      const isLocal = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1' ||
+                      window.location.hostname.endsWith('.local') ||
+                      window.location.port === '5173' // Vite dev server
+      
+      if (isLocal) {
+        this.baseUrl = 'http://localhost:3001'
+        console.log('[PROXY CLIENT] Using local proxy server')
+      } else {
+        this.baseUrl = ''
+        console.log('[PROXY CLIENT] Using relative /api paths (Vercel Functions)')
+      }
     } else {
       this.baseUrl = ''
     }
