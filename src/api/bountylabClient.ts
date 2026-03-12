@@ -66,7 +66,17 @@ class BountyLabClient {
       hasSearchRepos: !!this.client?.searchRepos,
       hasRawUsers: !!this.client?.rawUsers,
       hasRawRepos: !!this.client?.rawRepos,
+      allKeys: Object.keys(this.client || {}).sort(),
     })
+
+    // Test the client is working
+    if (!this.client.searchUsers?.search) {
+      console.error('❌ CRITICAL: SDK client.searchUsers.search is not available!', {
+        client: this.client,
+        searchUsers: this.client?.searchUsers,
+        searchMethod: this.client?.searchUsers?.search,
+      })
+    }
   }
 
   /**
@@ -101,6 +111,13 @@ class BountyLabClient {
         maxResults,
         page,
         per_page,
+        clientReady: !!this.client?.searchUsers?.search,
+      })
+
+      console.log('Making API call with:', {
+        method: 'client.searchUsers.search',
+        hasSearchUsers: !!this.client?.searchUsers,
+        hasSearchMethod: !!this.client?.searchUsers?.search,
       })
 
       const response = await this.client.searchUsers.search({
@@ -109,11 +126,14 @@ class BountyLabClient {
         ...(apiFilters && { filters: apiFilters }),
       })
 
-      console.log('Developer search response:', {
-        query: query.trim(),
-        foundCount: response.users?.length || 0,
-        totalAvailable: response.count || response.users?.length || 0,
-        hasError: !response.users,
+      console.log('✅ API call successful, response:', {
+        type: typeof response,
+        hasUsers: !!response.users,
+        usersArray: Array.isArray(response.users),
+        usersCount: response.users?.length,
+        hasCount: response.count !== undefined,
+        count: response.count,
+        responseKeys: response ? Object.keys(response).sort() : 'response is null',
       })
 
       // Handle response structure - users array is returned directly
