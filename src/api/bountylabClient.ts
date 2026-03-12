@@ -52,10 +52,13 @@ class BountyLabClient {
       hasApiKey: !!API_KEY,
       apiKeyLength: API_KEY?.length,
       apiKeyPrefix: API_KEY ? API_KEY.substring(0, 10) + '...' : 'none',
+      baseUrl: 'https://api.bountylab.io',
     })
 
+    // Initialize SDK with correct API domain
     this.client = new Bountylab({
       apiKey: API_KEY || '',
+      apiUrl: 'https://api.bountylab.io', // Correct domain per auth docs
     })
 
     console.log('BountyLab client initialized:', {
@@ -63,6 +66,7 @@ class BountyLabClient {
       hasSearchUsers: !!this.client?.searchUsers,
       hasSearchRepos: !!this.client?.searchRepos,
       hasRaw: !!this.client?.raw,
+      hasUsers: !!this.client?.users,
     })
   }
 
