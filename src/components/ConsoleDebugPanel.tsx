@@ -8,143 +8,103 @@ interface LogEntry {
   data?: unknown
 }
 
+// Global log queue for capturing before React mounts
+const globalLogQueue: LogEntry[] = []
+
 export function ConsoleDebugPanel() {
-  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [logs, setLogs] = useState<LogEntry[]>(globalLogQueue)
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const logsEndRef = useRef<HTMLDivElement>(null)
-  const capturedRef = useRef(false)
+  const logQueueRef = useRef(logs)
 
   useEffect(() => {
-    // Only set up interception once
-    if (capturedRef.current) return
-    capturedRef.current = true
+    logQueueRef.current = logs
+  }, [logs])
 
-    // Add initial log to prove panel is working
-    setLogs(prev => [...prev, {
-      level: 'info',
-      message: '✅ Console Debug Panel initialized',
-      timestamp: new Date().toLocaleTimeString(),
-    }])
+  useEffect(() => {
+    // Store original console methods
+    const originalLog = console.log
+    const originalError = console.error
+    const originalWarn = console.warn
+    const originalInfo = console.info
 
-    // Store original methods
-    const originalLog = window.console.log
-    const originalError = window.console.error
-    const originalWarn = window.console.warn
-    const originalInfo = window.console.info
-
-    // Override console.log
-    window.console.log = function(...args: any[]) {
-      originalLog.apply(window.console, args)
+    const addLog = (level: 'log' | 'error' | 'warn' | 'info', ...args: any[]) => {
       const message = args
         .map(arg => {
           if (typeof arg === 'object') {
             try {
               return JSON.stringify(arg, null, 2)
-            } catch {
+            } catch (e) {
               return String(arg)
             }
           }
           return String(arg)
         })
         .join(' ')
-      
-      setLogs(prev => [...prev, {
-        level: 'log',
-        message: message.substring(0, 500), // Limit size
+        .substring(0, level === 'error' ? 2000 : 800)
+
+      const entry: LogEntry = {
+        level,
+        message,
         timestamp: new Date().toLocaleTimeString(),
         data: args[0],
-      }])
+      }
+
+      setLogs(prev => {
+        const updated = [...prev, entry]
+        // Keep max 100 logs to avoid memory issues
+        return updated.slice(-100)
+      })
+
+      // Auto-open on error with slight delay
+      if (level === 'error') {
+        setTimeout(() => setIsOpen(true), 100)
+      }
     }
 
-    // Override console.error
-    window.console.error = function(...args: any[]) {
-      originalError.apply(window.console, args)
-      const message = args
-        .map(arg => {
-          if (typeof arg === 'object') {
-            try {
-              return JSON.stringify(arg, null, 2)
-            } catch {
-              return String(arg)
-            }
-          }
-          return String(arg)
-        })
-        .join(' ')
-      
-      setLogs(prev => [...prev, {
-        level: 'error',
-        message: message.substring(0, 1000), // Larger limit for errors
-        timestamp: new Date().toLocaleTimeString(),
-        data: args[0],
-      }])
-      
-      // Auto-open on error
-      setIsOpen(true)
+    // Intercept console.log
+    console.log = function(...args: any[]) {
+      originalLog.apply(console, args)
+      addLog('log', ...args)
     }
 
-    // Override console.warn
-    window.console.warn = function(...args: any[]) {
-      originalWarn.apply(window.console, args)
-      const message = args
-        .map(arg => {
-          if (typeof arg === 'object') {
-            try {
-              return JSON.stringify(arg, null, 2)
-            } catch {
-              return String(arg)
-            }
-          }
-          return String(arg)
-        })
-        .join(' ')
-      
-      setLogs(prev => [...prev, {
-        level: 'warn',
-        message: message.substring(0, 500),
-        timestamp: new Date().toLocaleTimeString(),
-        data: args[0],
-      }])
+    // Intercept console.error
+    console.error = function(...args: any[]) {
+      originalError.apply(console, args)
+      addLog('error', ...args)
     }
 
-    // Override console.info
-    window.console.info = function(...args: any[]) {
-      originalInfo.apply(window.console, args)
-      const message = args
-        .map(arg => {
-          if (typeof arg === 'object') {
-            try {
-              return JSON.stringify(arg, null, 2)
-            } catch {
-              return String(arg)
-            }
-          }
-          return String(arg)
-        })
-        .join(' ')
-      
-      setLogs(prev => [...prev, {
-        level: 'info',
-        message: message.substring(0, 500),
-        timestamp: new Date().toLocaleTimeString(),
-        data: args[0],
-      }])
+    // Intercept console.warn
+    console.warn = function(...args: any[]) {
+      originalWarn.apply(console, args)
+      addLog('warn', ...args)
     }
+
+    // Intercept console.info
+    console.info = function(...args: any[]) {
+      originalInfo.apply(console, args)
+      addLog('info', ...args)
+    }
+
+    // Add startup message
+    originalLog.call(console, '✅ Debug Panel Initialized')
 
     return () => {
-      // Restore original methods on cleanup
-      window.console.log = originalLog
-      window.console.error = originalError
-      window.console.warn = originalWarn
-      window.console.info = originalInfo
+      // Restore original methods
+      console.log = originalLog
+      console.error = originalError
+      console.warn = originalWarn
+      console.info = originalInfo
     }
   }, [])
 
   // Auto-scroll to latest log
   useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [logs])
+    if (isOpen && logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'auto' })
+    }
+  }, [logs, isOpen])
 
   if (!isOpen) {
     return (
@@ -153,93 +113,102 @@ export function ConsoleDebugPanel() {
         className="fixed bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-bold z-50 transition-all hover:scale-105"
         title="Open console debug panel"
       >
-        📊 Debug Console ({logs.length})
+        📊 Logs ({logs.length})
       </button>
     )
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-slate-900 border-2 border-slate-700 rounded-xl shadow-2xl w-[500px] max-h-[500px] flex flex-col z-50 text-white font-mono text-xs">
+    <div className="fixed bottom-4 right-4 bg-slate-900 border-2 border-slate-700 rounded-xl shadow-2xl w-[500px] max-h-[500px] flex flex-col z-50 text-white font-mono text-xs overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800 rounded-t-lg sticky top-0">
+      <div className="flex items-center justify-between p-3 border-b border-slate-700 bg-slate-800 rounded-t-lg flex-shrink-0">
         <div className="flex items-center gap-2">
-          <h3 className="font-bold text-sm">🐛 Console Debug</h3>
-          <span className="text-slate-400">({logs.length} logs)</span>
+          <span className="text-lg">🐛</span>
+          <h3 className="font-bold text-sm">Console Logs</h3>
+          <span className="text-slate-400 text-[11px]">({logs.length})</span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <button
             onClick={() => {
               const logText = logs.map(l => `[${l.timestamp}] ${l.message}`).join('\n')
               navigator.clipboard.writeText(logText)
+              alert('Copied!')
             }}
             className="hover:bg-slate-700 p-1.5 rounded transition"
-            title="Copy all logs"
+            title="Copy logs"
           >
-            <Copy size={16} />
+            <Copy size={14} />
           </button>
           <button
             onClick={() => setIsMinimized(!isMinimized)}
             className="hover:bg-slate-700 p-1.5 rounded transition"
             title={isMinimized ? 'Expand' : 'Minimize'}
           >
-            {isMinimized ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            {isMinimized ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
           <button
             onClick={() => setIsOpen(false)}
             className="hover:bg-slate-700 p-1.5 rounded transition"
             title="Close"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
       </div>
 
-      {/* Logs */}
+      {/* Logs Container */}
       {!isMinimized && (
-        <>
-          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-950">
-            {logs.length === 0 ? (
-              <div className="text-slate-500 py-8 text-center">Waiting for console output...</div>
-            ) : (
-              <>
-                {logs.map((log, idx) => (
+        <div className="flex-1 overflow-y-auto bg-slate-950 p-2 space-y-1">
+          {logs.length === 0 ? (
+            <div className="text-slate-500 py-8 text-center text-[11px]">Waiting for logs...</div>
+          ) : (
+            <>
+              {logs.map((log, idx) => {
+                let bgColor = 'bg-slate-900/40 border-slate-600 text-slate-300'
+                if (log.level === 'error') {
+                  bgColor = 'bg-red-950/60 border-red-700 text-red-200'
+                } else if (log.level === 'warn') {
+                  bgColor = 'bg-yellow-950/60 border-yellow-700 text-yellow-200'
+                } else if (log.level === 'info') {
+                  bgColor = 'bg-blue-950/60 border-blue-700 text-blue-200'
+                }
+
+                return (
                   <div
                     key={idx}
-                    className={`py-2 px-3 rounded border-l-2 ${
-                      log.level === 'error'
-                        ? 'bg-red-950/40 border-red-700 text-red-300'
-                        : log.level === 'warn'
-                        ? 'bg-yellow-950/40 border-yellow-700 text-yellow-300'
-                        : log.level === 'info'
-                        ? 'bg-blue-950/40 border-blue-700 text-blue-300'
-                        : 'bg-slate-900/60 border-slate-600 text-slate-300'
-                    }`}
+                    className={`py-1.5 px-2 rounded border-l-2 ${bgColor} break-words`}
                   >
-                    <div className="flex gap-2 text-slate-500 text-[10px]">
-                      <span>[{log.timestamp}]</span>
-                      <span>
-                        {log.level === 'error' ? '❌' : log.level === 'warn' ? '⚠️' : log.level === 'info' ? 'ℹ️' : '✓'}
-                      </span>
+                    <div className="text-[10px] text-slate-400 mb-0.5">
+                      [{log.timestamp}]{' '}
+                      {log.level === 'error'
+                        ? '❌'
+                        : log.level === 'warn'
+                        ? '⚠️'
+                        : log.level === 'info'
+                        ? 'ℹ️'
+                        : '✓'}
                     </div>
-                    <div className="whitespace-pre-wrap break-all mt-1 leading-tight">{log.message}</div>
+                    <div className="whitespace-pre-wrap text-[11px] leading-tight">
+                      {log.message}
+                    </div>
                   </div>
-                ))}
-                <div ref={logsEndRef} />
-              </>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="p-2 border-t border-slate-700 bg-slate-800 rounded-b-lg flex gap-2">
-            <button
-              onClick={() => setLogs([])}
-              className="flex-1 bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded text-xs font-semibold transition"
-            >
-              Clear
-            </button>
-          </div>
-        </>
+                )
+              })}
+              <div ref={logsEndRef} className="h-0" />
+            </>
+          )}
+        </div>
       )}
+
+      {/* Footer */}
+      <div className="p-2 border-t border-slate-700 bg-slate-800 rounded-b-lg flex-shrink-0 flex gap-2">
+        <button
+          onClick={() => setLogs([])}
+          className="flex-1 bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-[11px] font-semibold transition"
+        >
+          Clear
+        </button>
+      </div>
     </div>
   )
 }
