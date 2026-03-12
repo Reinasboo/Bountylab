@@ -20,34 +20,50 @@ export default function DeveloperSearch() {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
 
   const handleSearch = async () => {
+    console.log('🔍 Search button clicked', { searchQuery, filters })
+    
     if (!searchQuery.trim()) {
+      console.warn('⚠️ Search query is empty')
       setError('Please enter a search query')
       return
     }
 
     setIsLoading(true)
     setError(null)
+    console.log('📍 Starting search for:', searchQuery)
 
     try {
+      console.log('📞 Calling bountylabClient.searchDevelopers...')
       const response = await bountylabClient.searchDevelopers(
         searchQuery,
         filters,
         currentPage,
         20
       )
+      console.log('✅ Search succeeded:', { 
+        itemsFound: response.items.length, 
+        totalPages: response.total_pages,
+        firstItem: response.items[0],
+      })
       setDevelopers(response.items)
       setTotalPages(response.total_pages)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to search developers')
+      const errorMsg = err instanceof Error ? err.message : 'Failed to search developers'
+      console.error('❌ Search error caught:', errorMsg, err)
+      setError(errorMsg)
       setDevelopers([])
     } finally {
       setIsLoading(false)
+      console.log('✓ Search operation complete')
     }
   }
 
-  const handleTestAPI = async () => {
-    setIsLoading(true)
-    try {
+  const handleTestLog = () => {
+    console.log('✅ Console panel TEST LOG - this should appear in the debug panel')
+    console.info('ℹ️ This is an info message')
+    console.warn('⚠️ This is a warning message')
+    console.error('❌ This is an error message')
+  }
       const result = await testAPIConnectivity()
       if (result.success) {
         setError(null)
@@ -139,6 +155,17 @@ export default function DeveloperSearch() {
                 >
                   <Wrench size={18} />
                   <span className="hidden sm:inline">Test API</span>
+                </Button>
+                <Button 
+                  onClick={handleTestLog} 
+                  disabled={isLoading}
+                  variant="outline"
+                  size="lg"
+                  className="gap-2 px-4 font-semibold whitespace-nowrap"
+                  title="Test console logging - check debug panel"
+                >
+                  <Zap size={18} />
+                  <span className="hidden sm:inline">Test Log</span>
                 </Button>
               </div>
 
