@@ -38,27 +38,39 @@ class BountyLabClient {
   ): Promise<PaginatedResponse<Developer>> {
     try {
       if (!API_KEY) {
-        throw new Error('API key not configured. Please set VITE_BOUNTYLAB_API_KEY environment variable.')
+        throw new Error('VITE_BOUNTYLAB_API_KEY environment variable is not set. Configure it in Vercel dashboard under Settings → Environment Variables.')
+      }
+
+      if (!query || query.trim().length === 0) {
+        throw new Error('Search query cannot be empty')
       }
 
       // API returns up to maxResults, not paginated with offset/limit
       // For now, request sufficient results for the requested page
-      const maxResults = page * per_page
+      const maxResults = Math.min(page * per_page, 1000) // API max is 1000
 
       // Build filters if provided
       const apiFilters = this.buildUserFilters(filters)
 
+      console.log('Searching developers:', {
+        query: query.trim(),
+        filters: apiFilters,
+        maxResults,
+        page,
+        per_page,
+      })
+
       const response = await this.client.searchUsers.search({
-        query,
-        maxResults: Math.min(maxResults, 1000), // API max is 1000
+        query: query.trim(),
+        maxResults,
         ...(apiFilters && { filters: apiFilters }),
       })
 
-      console.log('SDK Response for searchUsers:', {
-        query,
-        responseKeys: Object.keys(response),
-        usersCount: response.users?.length,
-        response,
+      console.log('Developer search response:', {
+        query: query.trim(),
+        foundCount: response.users?.length || 0,
+        totalAvailable: response.count || response.users?.length || 0,
+        hasError: !response.users,
       })
 
       // Handle response structure - users array is returned directly
@@ -66,7 +78,11 @@ class BountyLabClient {
       
       if (!Array.isArray(allUsers)) {
         console.warn('Unexpected response structure:', { allUsers, response })
-        throw new Error(`Invalid response structure from API: expected users array, got ${typeof allUsers}`)
+        throw new Error(`Invalid response format from API: expected users array`)
+      }
+
+      if (allUsers.length === 0) {
+        console.log('Developer search returned no results for query:', query.trim())
       }
 
       // Paginate in memory for now (until API supports offset)
@@ -96,8 +112,8 @@ class BountyLabClient {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      console.error('Developer search failed:', {
-        query,
+      console.error('❌ Developer search failed:', {
+        query: query?.trim(),
         error: errorMessage,
         hasApiKey: !!API_KEY,
         stack: error instanceof Error ? error.stack : undefined,
@@ -167,7 +183,8 @@ class BountyLabClient {
   }
 
   /**
-   * Get a single developer by login
+   * Get a single developer by login using raw endpoint (direct lookup)
+   * More reliable than search for exact username lookups
    */
   async getDeveloper(login: string): Promise<Developer> {
     try {
@@ -175,11 +192,8 @@ class BountyLabClient {
         throw new Error('API key not configured.')
       }
 
-      // Use searchUsers to find exact user
-      const response = await this.client.searchUsers.search({
-        query: `login:${login}`, // Search for exact login
-        maxResults: 1,
-      })
+      // Use raw endpoint for direct lookup - more reliable than search
+      const response = await this.client.raw.getByLogin([login])
 
       const user = response.users?.[0]
       if (!user) {
@@ -205,6 +219,7 @@ class BountyLabClient {
       console.error('Get developer failed:', {
         login,
         error: errorMessage,
+        hasApiKey: !!API_KEY,
       })
       throw new Error(`Get developer failed: ${errorMessage}`)
     }
@@ -224,10 +239,15 @@ class BountyLabClient {
       }
 
       // Search for repos by owner
-      const maxResults = page * per_page
+      const maxResults = Math.min(page * per_page, 1000)
       const response = await this.client.searchRepos.search({
         query: `owner:${login}`,
-        maxResults: Math.min(maxResults, 1000),
+        maxResults,
+      })
+
+      console.log('Developer repositories response:', {
+        login,
+        foundCount: response.repositories?.length || 0,
       })
 
       const allRepos = response.repositories || []
@@ -258,6 +278,7 @@ class BountyLabClient {
       console.error('Get user repositories failed:', {
         login,
         error: errorMessage,
+        hasApiKey: !!API_KEY,
       })
       throw new Error(`Get user repositories failed: ${errorMessage}`)
     }
@@ -281,26 +302,38 @@ class BountyLabClient {
   ): Promise<PaginatedResponse<Repository>> {
     try {
       if (!API_KEY) {
-        throw new Error('API key not configured.')
+        throw new Error('VITE_BOUNTYLAB_API_KEY environment variable is not set. Configure it in Vercel dashboard under Settings → Environment Variables.')
+      }
+
+      if (!query || query.trim().length === 0) {
+        throw new Error('Search query cannot be empty')
       }
 
       // API returns up to maxResults, not paginated with offset/limit
-      const maxResults = page * per_page
+      const maxResults = Math.min(page * per_page, 1000) // API max is 1000
 
       // Build filters per API documentation
       const apiFilters = this.buildRepositoryFilters(filters)
 
+      console.log('Searching repositories:', {
+        query: query.trim(),
+        filters: apiFilters,
+        maxResults,
+        page,
+        per_page,
+      })
+
       const response = await this.client.searchRepos.search({
-        query,
-        maxResults: Math.min(maxResults, 1000), // API max is 1000
+        query: query.trim(),
+        maxResults,
         ...(apiFilters && { filters: apiFilters }),
       })
 
-      console.log('SDK Response for searchRepos:', {
-        query,
-        responseKeys: Object.keys(response),
-        repositoriesCount: response.repositories?.length,
-        response,
+      console.log('Repository search response:', {
+        query: query.trim(),
+        foundCount: response.repositories?.length || 0,
+        totalAvailable: response.count || response.repositories?.length || 0,
+        hasError: !response.repositories,
       })
 
       // Handle response structure - repositories array is returned directly
@@ -308,7 +341,11 @@ class BountyLabClient {
       
       if (!Array.isArray(allRepos)) {
         console.warn('Unexpected repository response structure:', { allRepos, response })
-        throw new Error(`Invalid response structure from API: expected repositories array, got ${typeof allRepos}`)
+        throw new Error(`Invalid response format from API: expected repositories array`)
+      }
+
+      if (allRepos.length === 0) {
+        console.log('Repository search returned no results for query:', query.trim())
       }
 
       // Paginate in memory for now (until API supports offset)
@@ -335,8 +372,8 @@ class BountyLabClient {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      console.error('Repository search failed:', {
-        query,
+      console.error('❌ Repository search failed:', {
+        query: query?.trim(),
         error: errorMessage,
         hasApiKey: !!API_KEY,
         stack: error instanceof Error ? error.stack : undefined,
@@ -395,7 +432,7 @@ class BountyLabClient {
   }
 
   /**
-   * Get a single repository
+   * Get a single repository using raw endpoint (direct lookup by fullname)
    */
   async getRepository(owner: string, repo: string): Promise<Repository> {
     try {
@@ -403,18 +440,13 @@ class BountyLabClient {
         throw new Error('API key not configured.')
       }
 
-      // Search for the specific repo
-      const response = await this.client.searchRepos.search({
-        query: `${repo} owner:${owner}`,
-        maxResults: 10,
-      })
+      // Use raw endpoint for direct lookup - more reliable than search
+      const fullname = `${owner}/${repo}`
+      const response = await this.client.raw.getReposByFullname([fullname])
 
-      const foundRepo = response.repositories?.find(
-        (r: any) => r.name === repo && (r.owner?.login === owner || r.ownerLogin === owner)
-      )
-
+      const foundRepo = response.repositories?.[0]
       if (!foundRepo) {
-        throw new Error(`Repository "${owner}/${repo}" not found`)
+        throw new Error(`Repository "${fullname}" not found`)
       }
 
       return {
@@ -434,6 +466,7 @@ class BountyLabClient {
         owner,
         repo,
         error: errorMessage,
+        hasApiKey: !!API_KEY,
       })
       throw new Error(`Get repository failed: ${errorMessage}`)
     }
@@ -454,15 +487,16 @@ class BountyLabClient {
       }
 
       // Search for contributors by repository context
-      const maxResults = page * per_page
+      const maxResults = Math.min(page * per_page, 1000)
       const response = await this.client.searchUsers.search({
         query: repo, // Search within repo context
-        maxResults: Math.min(maxResults, 1000),
-        filters: {
-          field: 'contributions',
-          op: 'Gte',
-          value: 1,
-        },
+        maxResults,
+      })
+
+      console.log('Repository contributors response:', {
+        owner,
+        repo,
+        foundCount: response.users?.length || 0,
       })
 
       const allUsers = response.users || []
@@ -497,6 +531,7 @@ class BountyLabClient {
         owner,
         repo,
         error: errorMessage,
+        hasApiKey: !!API_KEY,
       })
       throw new Error(`Get repository contributors failed: ${errorMessage}`)
     }
@@ -516,14 +551,29 @@ class BountyLabClient {
 
       // Search for trending developers using keyword search
       const query = language ? `${language} developer` : 'developer'
+      
+      // Build filter for high follower count
+      const filter = {
+        field: 'followers',
+        op: 'Gte',
+        value: 100, // Trending = high follower count
+      }
+
+      console.log('Fetching trending developers:', {
+        query,
+        language,
+        timeframe,
+      })
+
       const response = await this.client.searchUsers.search({
         query,
         maxResults: 50,
-        filters: {
-          field: 'followers',
-          op: 'Gte',
-          value: 100, // Trending = high follower count
-        },
+        filters: filter,
+      })
+
+      console.log('Trending developers response:', {
+        foundCount: response.users?.length || 0,
+        language,
       })
 
       return response.users?.map((user: any) => ({
@@ -546,6 +596,7 @@ class BountyLabClient {
         language,
         timeframe,
         error: errorMessage,
+        hasApiKey: !!API_KEY,
       })
       throw new Error(`Get trending developers failed: ${errorMessage}`)
     }
@@ -590,8 +641,71 @@ class BountyLabClient {
       console.error('Get developer by email failed:', {
         email,
         error: errorMessage,
+        hasApiKey: !!API_KEY,
       })
       throw new Error(`Get developer by email failed: ${errorMessage}`)
+    }
+  }
+
+  /**
+   * Get best email address for a developer by login
+   * Uses the dedicated email endpoint for more accurate results
+   */
+  async getBestEmailByLogin(login: string): Promise<string | null> {
+    try {
+      if (!API_KEY) {
+        throw new Error('API key not configured.')
+      }
+
+      const response = await this.client.users.bestEmailByLogin([login])
+      
+      const emailData = response.emails?.[0]
+      console.log('Best email response:', {
+        login,
+        emailData,
+      })
+
+      return emailData?.email || null
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Get best email failed:', {
+        login,
+        error: errorMessage,
+        hasApiKey: !!API_KEY,
+      })
+      // Return null instead of throwing - email lookup is optional
+      return null
+    }
+  }
+
+  /**
+   * Get best email addresses for multiple developers
+   */
+  async getBestEmailsByLogins(logins: string[]): Promise<Map<string, string | null>> {
+    try {
+      if (!API_KEY) {
+        throw new Error('API key not configured.')
+      }
+
+      const response = await this.client.users.bestEmail(logins)
+      
+      const emailMap = new Map<string, string | null>()
+      
+      response.emails?.forEach((emailData: any) => {
+        const login = emailData.login || emailData.username
+        emailMap.set(login, emailData.email || null)
+      })
+
+      return emailMap
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Get best emails failed:', {
+        loginsCount: logins.length,
+        error: errorMessage,
+        hasApiKey: !!API_KEY,
+      })
+      // Return empty map instead of throwing - email lookup is optional
+      return new Map()
     }
   }
 }
