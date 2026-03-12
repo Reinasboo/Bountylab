@@ -48,35 +48,45 @@ class BountyLabClient {
   private client: Bountylab
 
   constructor() {
-    console.log('Initializing BountyLab client with:', {
+    console.log('='.repeat(60))
+    console.log('🔧 BountyLab CLIENT INITIALIZATION')
+    console.log('='.repeat(60))
+    console.log('Step 1: Check API Key')
+    console.log({
       hasApiKey: !!API_KEY,
       apiKeyLength: API_KEY?.length,
-      apiKeyPrefix: API_KEY ? API_KEY.substring(0, 10) + '...' : 'none',
+      apiKeyPrefix: API_KEY ? API_KEY.substring(0, 15) + '...' : 'MISSING ❌',
+      environment: typeof window !== 'undefined' ? 'BROWSER' : 'NODE',
     })
 
+    if (!API_KEY) {
+      console.error('❌ CRITICAL: API_KEY is not set!')
+      console.error('Check: import.meta.env.VITE_BOUNTYLAB_API_KEY')
+    }
+
     // Initialize SDK - it automatically handles the API endpoint
-    // Do NOT pass apiUrl - SDK figures it out based on API key
+    console.log('Step 2: Initialize Bountylab SDK')
     this.client = new Bountylab({
       apiKey: API_KEY || '',
     })
 
-    console.log('BountyLab client initialized:', {
-      clientType: typeof this.client,
+    console.log('Step 3: Verify SDK methods exist')
+    console.log({
+      clientExists: !!this.client,
       hasSearchUsers: !!this.client?.searchUsers,
-      hasSearchRepos: !!this.client?.searchRepos,
+      hasSearchUserSearch: !!this.client?.searchUsers?.search,
       hasRawUsers: !!this.client?.rawUsers,
-      hasRawRepos: !!this.client?.rawRepos,
-      allKeys: Object.keys(this.client || {}).sort(),
+      searchUsersType: typeof this.client?.searchUsers,
     })
 
-    // Test the client is working
     if (!this.client.searchUsers?.search) {
-      console.error('❌ CRITICAL: SDK client.searchUsers.search is not available!', {
-        client: this.client,
-        searchUsers: this.client?.searchUsers,
-        searchMethod: this.client?.searchUsers?.search,
-      })
+      console.error('❌ CRITICAL: SDK missing searchUsers.search method!')
+      console.error('Full client keys:', Object.keys(this.client || {}).sort())
+    } else {
+      console.log('✅ SDK initialized successfully with all required methods')
     }
+    
+    console.log('='.repeat(60))
   }
 
   /**
@@ -89,66 +99,85 @@ class BountyLabClient {
     page: number = 1,
     per_page: number = 20
   ): Promise<PaginatedResponse<Developer>> {
+    console.log('\n' + '='.repeat(60))
+    console.log('🔍 DEVELOPER SEARCH CALLED')
+    console.log('='.repeat(60))
+    console.log('Input:', { query, filters, page, per_page })
+
     try {
+      // Check 1: API Key
+      console.log('Check 1: API Key')
       if (!API_KEY) {
         throw new Error('VITE_BOUNTYLAB_API_KEY environment variable is not set. Configure it in Vercel dashboard under Settings → Environment Variables.')
       }
+      console.log('✅ API Key present:', API_KEY.substring(0, 15) + '...')
 
+      // Check 2: Query validation
+      console.log('Check 2: Query validation')
       if (!query || query.trim().length === 0) {
         throw new Error('Search query cannot be empty')
       }
+      console.log('✅ Query valid:', query.trim())
 
-      // API returns up to maxResults, not paginated with offset/limit
-      // For now, request sufficient results for the requested page
-      const maxResults = Math.min(page * per_page, 1000) // API max is 1000
-
-      // Build filters if provided
-      const apiFilters = this.buildUserFilters(filters)
-
-      console.log('Searching developers:', {
-        query: query.trim(),
-        filters: apiFilters,
-        maxResults,
-        page,
-        per_page,
-        clientReady: !!this.client?.searchUsers?.search,
-      })
-
-      console.log('Making API call with:', {
-        method: 'client.searchUsers.search',
+      // Check 3: Client status
+      console.log('Check 3: SDK client status')
+      console.log({
+        clientExists: !!this.client,
         hasSearchUsers: !!this.client?.searchUsers,
         hasSearchMethod: !!this.client?.searchUsers?.search,
+        methodType: typeof this.client?.searchUsers?.search,
       })
 
+      if (!this.client?.searchUsers?.search) {
+        throw new Error('SDK client.searchUsers.search is not available!')
+      }
+      console.log('✅ SDK client ready')
+
+      // Check 4: Build parameters
+      console.log('Check 4: Build API parameters')
+      const maxResults = Math.min(page * per_page, 1000)
+      const apiFilters = this.buildUserFilters(filters)
+      console.log({
+        maxResults,
+        filters: apiFilters,
+      })
+
+      // Check 5: Make API call
+      console.log('Check 5: Making API call to client.searchUsers.search()...')
+      const startTime = Date.now()
+      
       const response = await this.client.searchUsers.search({
         query: query.trim(),
         maxResults,
         ...(apiFilters && { filters: apiFilters }),
       })
+      
+      const duration = Date.now() - startTime
+      console.log(`✅ API CALL SUCCESSFUL (took ${duration}ms)`)
 
-      console.log('✅ API call successful, response:', {
-        type: typeof response,
+      // Check 6: Validate response
+      console.log('Check 6: Validate response structure')
+      console.log({
+        responseType: typeof response,
         hasUsers: !!response.users,
-        usersArray: Array.isArray(response.users),
-        usersCount: response.users?.length,
+        usersIsArray: Array.isArray(response.users),
+        usersCount: response.users?.length || 0,
         hasCount: response.count !== undefined,
         count: response.count,
-        responseKeys: response ? Object.keys(response).sort() : 'response is null',
+        responseKeys: Object.keys(response).sort(),
       })
 
-      // Handle response structure - users array is returned directly
       const allUsers = response.users || []
       
       if (!Array.isArray(allUsers)) {
-        console.warn('Unexpected response structure:', { allUsers, response })
+        console.warn('⚠️ Response users is not an array:', { allUsers, response })
         throw new Error(`Invalid response format from API: expected users array`)
       }
 
-      if (allUsers.length === 0) {
-        console.log('Developer search returned no results for query:', query.trim())
-      }
+      console.log(`✅ Response valid: ${allUsers.length} users returned`)
 
-      // Paginate in memory for now (until API supports offset)
+      // Check 7: Process results
+      console.log('Check 7: Processing results...')
       const startIdx = (page - 1) * per_page
       const endIdx = startIdx + per_page
       const items = allUsers.slice(startIdx, endIdx).map((user: any) => ({
@@ -166,28 +195,34 @@ class BountyLabClient {
         github_url: `https://github.com/${user.login}`,
       }))
 
-      return {
+      const result = {
         items,
         total: allUsers.length,
         page,
         per_page,
         total_pages: Math.ceil(allUsers.length / per_page),
       }
+
+      console.log('✅ SEARCH COMPLETE')
+      console.log({
+        itemsReturned: items.length,
+        totalPages: result.total_pages,
+        firstItem: items[0],
+      })
+      console.log('='.repeat(60) + '\n')
+
+      return result
     } catch (error) {
+      console.log('Check X: ERROR HANDLING')
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      const errorDetails = {
-        query: query?.trim(),
-        error: errorMessage,
-        hasApiKey: !!API_KEY,
-        errorType: error?.constructor?.name,
-        errorStack: error instanceof Error ? error.stack : undefined,
-        errorCause: (error as any)?.cause,
-        fullError: JSON.stringify(error, null, 2),
-      }
-      console.error('❌ Developer search failed:', errorDetails)
-      
-      // Log the full error object for inspection
+      console.error('❌ ERROR:', errorMessage)
       console.error('Full error object:', error)
+      console.error('Error type:', error?.constructor?.name)
+      if (error instanceof Error) {
+        console.error('Error stack:', error.stack)
+      }
+      
+      console.log('='.repeat(60) + '\n')
       
       // Provide specific guidance based on error type
       if (errorMessage.includes('failed') || errorMessage.includes('fetch')) {
