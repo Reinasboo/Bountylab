@@ -9,6 +9,33 @@ if (!API_KEY) {
   )
 }
 
+// Intercept fetch to log all API requests
+const originalFetch = globalThis.fetch
+globalThis.fetch = function(...args: any[]) {
+  const [resource, config] = args
+  console.log('🔗 API Request:', {
+    url: resource,
+    method: config?.method || 'GET',
+    headerAuth: config?.headers?.Authorization ? 'Bearer ' + config.headers.Authorization.substring(7, 17) + '...' : 'none',
+  })
+  
+  return originalFetch.apply(globalThis, args).then((response: Response) => {
+    console.log('📡 API Response:', {
+      url: resource,
+      status: response.status,
+      statusText: response.statusText,
+      contentType: response.headers.get('content-type'),
+    })
+    return response
+  }).catch((error: Error) => {
+    console.error('❌ API Request Failed:', {
+      url: resource,
+      error: error.message,
+    })
+    throw error
+  })
+} as any
+
 interface PaginatedResponse<T> {
   items: T[]
   total: number
