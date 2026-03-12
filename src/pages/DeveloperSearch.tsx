@@ -100,19 +100,6 @@ export default function DeveloperSearch() {
     console.warn('⚠️ This is a warning message')
     console.error('❌ This is an error message')
   }
-      const result = await testAPIConnectivity()
-      if (result.success) {
-        setError(null)
-        console.log('✅ API test passed!')
-      } else {
-        setError(`API test failed: ${result.error}`)
-      }
-    } catch (err) {
-      setError(`API test error: ${err instanceof Error ? err.message : 'Unknown'}`)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   useEffect(() => {
     setCurrentPage(1)
