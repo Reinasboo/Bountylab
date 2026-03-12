@@ -41,18 +41,39 @@ class BountyLabClient {
       ...options.headers,
     }
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...options,
-      headers,
-    })
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...options,
+        headers,
+      })
 
-    if (!response.ok) {
-      throw new Error(
-        `API Error: ${response.status} ${response.statusText}`
-      )
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = 
+          errorData?.error || 
+          errorData?.message || 
+          `API Error: ${response.status} ${response.statusText}`
+        
+        console.error('API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          endpoint,
+          error: errorMessage,
+          hasApiKey: !!this.apiKey,
+        })
+        
+        throw new Error(errorMessage)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('API Request Failed:', {
+        endpoint,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        hasApiKey: !!this.apiKey,
+      })
+      throw error
     }
-
-    return response.json()
   }
 
   /**
