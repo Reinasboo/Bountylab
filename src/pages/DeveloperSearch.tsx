@@ -5,7 +5,6 @@ import { testAPIConnectivity } from '@/utils/test-api'
 import { DeveloperCard } from '@/components/DeveloperCard'
 import { DeveloperTable } from '@/components/DeveloperTable'
 import { DeveloperFilters } from '@/components/DeveloperFilters'
-import { SDKDebugPanel } from '@/components/SDKDebugPanel'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader, Grid, Table as TableIcon, Search, AlertCircle, Zap, Wrench } from 'lucide-react'
@@ -321,7 +320,6 @@ export default function DeveloperSearch() {
           </div>
         </div>
       </div>
-      <SDKDebugPanel />
     </div>
   )
 }
