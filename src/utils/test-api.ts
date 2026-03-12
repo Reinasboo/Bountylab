@@ -1,42 +1,30 @@
 /**
- * Utility to test API connectivity directly
+ * Utility to test API connectivity via proxy
  */
 
 export async function testAPIConnectivity() {
-  const apiKey = import.meta.env.VITE_BOUNTYLAB_API_KEY
+  const baseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:3001'
+    : ''
 
   console.log('🧪 Testing API connectivity...')
-  console.log({
-    hasApiKey: !!apiKey,
-    apiKeyPrefix: apiKey ? apiKey.substring(0, 10) + '...' : 'MISSING',
-  })
-
-  if (!apiKey) {
-    console.error('❌ API Key is missing! Check Vercel environment variables.')
-    return { success: false, error: 'Missing API key' }
-  }
 
   try {
-    // Test with a simple raw fetch to the BountyLab API
-    const response = await fetch('https://api.bountylab.io/api/search/users', {
+    // Test via the proxy instead of direct API call
+    const response = await fetch(`${baseUrl}/api/search-users`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: 'javascript',
+        query: 'test',
         maxResults: 1,
       }),
     })
 
-    console.log('🔍 Raw API Response:', {
+    console.log('🔍 Proxy API Response:', {
       status: response.status,
       statusText: response.statusText,
-      headers: {
-        contentType: response.headers.get('content-type'),
-        server: response.headers.get('server'),
-      },
     })
 
     const data = await response.json()

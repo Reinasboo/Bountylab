@@ -16,8 +16,14 @@ app.use(express.json())
 const API_KEY = process.env.VITE_BOUNTYLAB_API_KEY || 'gMolfPrnxsbeTBJQGfydcAilRkNYHwyHxBalifYjITEaUJieRABauFICmIAYGtbj'
 const API_BASE_URL = process.env.VITE_BOUNTYLAB_API_BASE_URL || 'https://api.bountylab.io'
 
+console.log('[PROXY] Initializing with:')
+console.log('  - API_KEY:', API_KEY.substring(0, 15) + '...')
+console.log('  - API_BASE_URL:', API_BASE_URL)
+
 // Initialize SDK once
 const client = new Bountylab({ apiKey: API_KEY, baseUrl: API_BASE_URL })
+
+console.log('[PROXY] SDK initialized with baseURL:', client.baseURL)
 
 // Search users proxy
 app.post('/api/search-users', async (req, res) => {
