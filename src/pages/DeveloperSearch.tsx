@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { bountylabClient } from '@/api/bountylabClient'
 import { Developer, SearchFilters } from '@/types/developer'
+import { testAPIConnectivity } from '@/utils/test-api'
 import { DeveloperCard } from '@/components/DeveloperCard'
 import { DeveloperTable } from '@/components/DeveloperTable'
 import { DeveloperFilters } from '@/components/DeveloperFilters'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader, Grid, Table as TableIcon, Search, AlertCircle, Zap } from 'lucide-react'
+import { Loader, Grid, Table as TableIcon, Search, AlertCircle, Zap, Wrench } from 'lucide-react'
 
 export default function DeveloperSearch() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -39,6 +40,23 @@ export default function DeveloperSearch() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to search developers')
       setDevelopers([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleTestAPI = async () => {
+    setIsLoading(true)
+    try {
+      const result = await testAPIConnectivity()
+      if (result.success) {
+        setError(null)
+        console.log('✅ API test passed!')
+      } else {
+        setError(`API test failed: ${result.error}`)
+      }
+    } catch (err) {
+      setError(`API test error: ${err instanceof Error ? err.message : 'Unknown'}`)
     } finally {
       setIsLoading(false)
     }
@@ -110,6 +128,17 @@ export default function DeveloperSearch() {
                       Search
                     </>
                   )}
+                </Button>
+                <Button 
+                  onClick={handleTestAPI} 
+                  disabled={isLoading}
+                  variant="outline"
+                  size="lg"
+                  className="gap-2 px-4 font-semibold whitespace-nowrap"
+                  title="Test API connectivity (check console)"
+                >
+                  <Wrench size={18} />
+                  <span className="hidden sm:inline">Test API</span>
                 </Button>
               </div>
 
