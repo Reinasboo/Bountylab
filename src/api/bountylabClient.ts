@@ -36,42 +36,63 @@ class BountyLabClient {
     per_page: number = 20
   ): Promise<PaginatedResponse<Developer>> {
     try {
+      if (!API_KEY) {
+        throw new Error('API key not configured. Please set VITE_BOUNTYLAB_API_KEY environment variable.')
+      }
+
       const response = await this.client.searchUsers.search({
         query,
         limit: per_page,
         offset: (page - 1) * per_page,
       })
 
+      console.log('SDK Response for searchUsers:', {
+        responseKeys: Object.keys(response),
+        response,
+      })
+
+      // Handle different possible response structures from the SDK
+      const users = response.users || response.data || response || []
+      
+      if (!Array.isArray(users)) {
+        console.warn('Unexpected response structure:', { users, response })
+        throw new Error(`Invalid response structure from API: expected array, got ${typeof users}`)
+      }
+
       // Transform response to match our interface
-      const items = response.users?.map((user: any) => ({
+      const items = users.map((user: any) => ({
         id: user.id,
-        login: user.login,
+        login: user.login || user.username,
         name: user.name,
-        avatar_url: user.avatarUrl,
+        avatar_url: user.avatarUrl || user.avatar_url,
         bio: user.bio,
         company: user.company,
         location: user.location,
         followers: user.followers || 0,
-        total_stars: user.publicRepoContributions || 0,
-        devrank_score: user.devRank || 0,
-        top_languages: user.topLanguages || [],
-        github_url: `https://github.com/${user.login}`,
-      })) || []
+        total_stars: user.publicRepoContributions || user.total_stars || 0,
+        devrank_score: user.devRank || user.devrank_score || 0,
+        top_languages: user.topLanguages || user.top_languages || [],
+        github_url: `https://github.com/${user.login || user.username}`,
+      }))
+
+      const totalCount = response.totalCount || response.total || 0
 
       return {
         items,
-        total: response.totalCount || 0,
+        total: totalCount,
         page,
         per_page,
-        total_pages: Math.ceil((response.totalCount || 0) / per_page),
+        total_pages: Math.ceil(totalCount / per_page),
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       console.error('Developer search failed:', {
         query,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
         hasApiKey: !!API_KEY,
+        stack: error instanceof Error ? error.stack : undefined,
       })
-      throw error
+      throw new Error(`Search failed: ${errorMessage}`)
     }
   }
 
