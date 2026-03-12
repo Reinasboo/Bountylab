@@ -52,21 +52,20 @@ class BountyLabClient {
       hasApiKey: !!API_KEY,
       apiKeyLength: API_KEY?.length,
       apiKeyPrefix: API_KEY ? API_KEY.substring(0, 10) + '...' : 'none',
-      baseUrl: 'https://api.bountylab.io',
     })
 
-    // Initialize SDK with correct API domain
+    // Initialize SDK - it automatically handles the API endpoint
+    // Do NOT pass apiUrl - SDK figures it out based on API key
     this.client = new Bountylab({
       apiKey: API_KEY || '',
-      apiUrl: 'https://api.bountylab.io', // Correct domain per auth docs
     })
 
     console.log('BountyLab client initialized:', {
       clientType: typeof this.client,
       hasSearchUsers: !!this.client?.searchUsers,
       hasSearchRepos: !!this.client?.searchRepos,
-      hasRaw: !!this.client?.raw,
-      hasUsers: !!this.client?.users,
+      hasRawUsers: !!this.client?.rawUsers,
+      hasRawRepos: !!this.client?.rawRepos,
     })
   }
 
@@ -133,10 +132,10 @@ class BountyLabClient {
       const startIdx = (page - 1) * per_page
       const endIdx = startIdx + per_page
       const items = allUsers.slice(startIdx, endIdx).map((user: any) => ({
-        id: user.githubId || user.id,
+        id: user.id,
         login: user.login,
-        name: user.displayName,
-        avatar_url: user.avatar_url || user.avatarUrl,
+        name: user.name,
+        avatar_url: user.avatarUrl,
         bio: user.bio,
         company: user.company,
         location: user.location,
@@ -249,7 +248,7 @@ class BountyLabClient {
 
   /**
    * Get a single developer by login using raw endpoint (direct lookup)
-   * More reliable than search for exact username lookups
+   * Per docs: client.rawUsers.byLogin({ logins: [...] })
    */
   async getDeveloper(login: string): Promise<Developer> {
     try {
@@ -257,8 +256,17 @@ class BountyLabClient {
         throw new Error('API key not configured.')
       }
 
-      // Use raw endpoint for direct lookup - more reliable than search
-      const response = await this.client.raw.getByLogin([login])
+      console.log('Getting developer by login:', { login })
+
+      // Use rawUsers.byLogin for direct lookup - per official docs
+      const response = await this.client.rawUsers.byLogin({
+        logins: [login],
+      })
+
+      console.log('Get developer response:', {
+        login,
+        found: response.count > 0,
+      })
 
       const user = response.users?.[0]
       if (!user) {
@@ -266,10 +274,10 @@ class BountyLabClient {
       }
 
       return {
-        id: user.githubId || user.id,
+        id: user.id,
         login: user.login,
-        name: user.displayName,
-        avatar_url: user.avatar_url || user.avatarUrl,
+        name: user.name,
+        avatar_url: user.avatarUrl,
         bio: user.bio,
         company: user.company,
         location: user.location,
@@ -281,7 +289,7 @@ class BountyLabClient {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('Get developer failed:', {
+      console.error('❌ Get developer failed:', {
         login,
         error: errorMessage,
         hasApiKey: !!API_KEY,
@@ -507,6 +515,7 @@ class BountyLabClient {
 
   /**
    * Get a single repository using raw endpoint (direct lookup by fullname)
+   * Per docs: client.rawRepos.byFullname({ fullNames: [...] })
    */
   async getRepository(owner: string, repo: string): Promise<Repository> {
     try {
@@ -514,9 +523,18 @@ class BountyLabClient {
         throw new Error('API key not configured.')
       }
 
-      // Use raw endpoint for direct lookup - more reliable than search
       const fullname = `${owner}/${repo}`
-      const response = await this.client.raw.getReposByFullname([fullname])
+      console.log('Getting repository by fullname:', { fullname })
+
+      // Use rawRepos.byFullname for direct lookup - per official docs
+      const response = await this.client.rawRepos.byFullname({
+        fullNames: [fullname],
+      })
+
+      console.log('Get repository response:', {
+        fullname,
+        found: response.count > 0,
+      })
 
       const foundRepo = response.repositories?.[0]
       if (!foundRepo) {
@@ -524,7 +542,7 @@ class BountyLabClient {
       }
 
       return {
-        id: foundRepo.githubId || foundRepo.id,
+        id: foundRepo.id,
         name: foundRepo.name,
         owner,
         description: foundRepo.description,
@@ -536,7 +554,7 @@ class BountyLabClient {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('Get repository failed:', {
+      console.error('❌ Get repository failed:', {
         owner,
         repo,
         error: errorMessage,
@@ -578,10 +596,10 @@ class BountyLabClient {
       const endIdx = startIdx + per_page
 
       const items = allUsers.slice(startIdx, endIdx).map((user: any) => ({
-        id: user.githubId || user.id,
+        id: user.id,
         login: user.login,
-        name: user.displayName,
-        avatar_url: user.avatar_url || user.avatarUrl,
+        name: user.name,
+        avatar_url: user.avatarUrl,
         bio: user.bio,
         company: user.company,
         location: user.location,
@@ -651,10 +669,10 @@ class BountyLabClient {
       })
 
       return response.users?.map((user: any) => ({
-        id: user.githubId || user.id,
+        id: user.id,
         login: user.login,
-        name: user.displayName,
-        avatar_url: user.avatar_url || user.avatarUrl,
+        name: user.name,
+        avatar_url: user.avatarUrl,
         bio: user.bio,
         company: user.company,
         location: user.location,
@@ -697,10 +715,10 @@ class BountyLabClient {
       }
 
       return {
-        id: user.githubId || user.id,
+        id: user.id,
         login: user.login,
-        name: user.displayName,
-        avatar_url: user.avatar_url || user.avatarUrl,
+        name: user.name,
+        avatar_url: user.avatarUrl,
         bio: user.bio,
         company: user.company,
         location: user.location,
