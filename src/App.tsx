@@ -6,6 +6,7 @@ import DeveloperProfile from './pages/DeveloperProfile'
 import RepoDiscovery from './pages/RepoDiscovery'
 import SavedCandidates from './pages/SavedCandidates'
 import NavigationBar from './components/NavigationBar'
+import { ConsoleDebugPanel } from './components/ConsoleDebugPanel'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         </Routes>
       </div>
       <Toaster />
+      <ConsoleDebugPanel />
     </BrowserRouter>
   )
 }
