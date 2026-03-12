@@ -182,9 +182,12 @@ class BountyLabClient {
         errorType: error?.constructor?.name,
         errorStack: error instanceof Error ? error.stack : undefined,
         errorCause: (error as any)?.cause,
-        fullError: error,
+        fullError: JSON.stringify(error, null, 2),
       }
       console.error('❌ Developer search failed:', errorDetails)
+      
+      // Log the full error object for inspection
+      console.error('Full error object:', error)
       
       // Provide specific guidance based on error type
       if (errorMessage.includes('failed') || errorMessage.includes('fetch')) {
