@@ -29,12 +29,11 @@ export default function RepoDiscovery() {
       setError('Please enter a search query')
       return
     }
-
     setIsLoading(true)
     setError(null)
     setCurrentPage(1)
-
     try {
+      console.log('[REPO SEARCH] Calling bountylabClient.searchRepositories...', { searchQuery, filters })
       const response = await bountylabClient.searchRepositories(
         searchQuery,
         {
@@ -47,10 +46,16 @@ export default function RepoDiscovery() {
         1,
         20
       )
+      console.log('[REPO SEARCH] Search succeeded:', { itemsFound: response.items.length, totalPages: response.total_pages, firstItem: response.items[0] })
       setRepos(response.items)
       setTotalPages(response.total_pages)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to search repositories')
+      const errorMsg = err instanceof Error ? err.message : 'Failed to search repositories'
+      console.error('[REPO SEARCH] Search error caught:', errorMsg, err)
+      if (err instanceof Error && err.stack) {
+        console.error('[REPO SEARCH] Error stack:', err.stack)
+      }
+      setError(errorMsg)
       setRepos([])
     } finally {
       setIsLoading(false)

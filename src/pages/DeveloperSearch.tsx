@@ -57,17 +57,14 @@ export default function DeveloperSearch() {
 
   const handleSearch = async () => {
     console.log('🔍 Search button clicked', { searchQuery, filters })
-    
     if (!searchQuery.trim()) {
       console.warn('⚠️ Search query is empty')
       setError('Please enter a search query')
       return
     }
-
     setIsLoading(true)
     setError(null)
     console.log('📍 Starting search for:', searchQuery)
-
     try {
       console.log('📞 Calling bountylabClient.searchDevelopers...')
       const response = await bountylabClient.searchDevelopers(
@@ -86,6 +83,9 @@ export default function DeveloperSearch() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to search developers'
       console.error('❌ Search error caught:', errorMsg, err)
+      if (err instanceof Error && err.stack) {
+        console.error('❌ Error stack:', err.stack)
+      }
       setError(errorMsg)
       setDevelopers([])
     } finally {

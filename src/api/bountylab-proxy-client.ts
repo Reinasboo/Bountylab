@@ -76,33 +76,49 @@ class BountyLabProxyClient {
   }
 
   async searchUsers(query: string, maxResults: number = 20, filters?: any): Promise<SearchUsersResponse> {
-    const response = await fetch(`${this.baseUrl}/api/search-users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, maxResults, filters })
-    })
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: response.statusText }))
-      throw new Error(error.error || `Search failed with status ${response.status}`)
-    }
-
-    return response.json()
+      try {
+        console.log('[PROXY CLIENT] searchUsers: Sending request', { url: `${this.baseUrl}/api/search-users`, query, maxResults, filters })
+        const response = await fetch(`${this.baseUrl}/api/search-users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, maxResults, filters })
+        })
+        console.log('[PROXY CLIENT] searchUsers: Response status', response.status, response.statusText)
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: response.statusText }))
+          console.error('[PROXY CLIENT] searchUsers: Error response', error)
+          throw new Error(error.error || `Search failed with status ${response.status}`)
+        }
+        const data = await response.json()
+        console.log('[PROXY CLIENT] searchUsers: Response data', data)
+        return data
+      } catch (err) {
+        console.error('[PROXY CLIENT] searchUsers: Network or fetch error', err)
+        throw err
+      }
   }
 
   async searchRepos(query: string, maxResults: number = 20, filters?: any): Promise<SearchReposResponse> {
-    const response = await fetch(`${this.baseUrl}/api/search-repos`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, maxResults, filters })
-    })
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: response.statusText }))
-      throw new Error(error.error || `Search failed with status ${response.status}`)
-    }
-
-    return response.json()
+      try {
+        console.log('[PROXY CLIENT] searchRepos: Sending request', { url: `${this.baseUrl}/api/search-repos`, query, maxResults, filters })
+        const response = await fetch(`${this.baseUrl}/api/search-repos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, maxResults, filters })
+        })
+        console.log('[PROXY CLIENT] searchRepos: Response status', response.status, response.statusText)
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: response.statusText }))
+          console.error('[PROXY CLIENT] searchRepos: Error response', error)
+          throw new Error(error.error || `Search failed with status ${response.status}`)
+        }
+        const data = await response.json()
+        console.log('[PROXY CLIENT] searchRepos: Response data', data)
+        return data
+      } catch (err) {
+        console.error('[PROXY CLIENT] searchRepos: Network or fetch error', err)
+        throw err
+      }
   }
 
   async getRawUsersByLogin(logins: string[]): Promise<RawUsersResponse> {
