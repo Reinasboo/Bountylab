@@ -6,7 +6,7 @@ import { DeveloperTable } from '@/components/DeveloperTable'
 import { DeveloperFilters } from '@/components/DeveloperFilters'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader, Grid, Table as TableIcon, Search, AlertCircle } from 'lucide-react'
+import { Loader, Grid, Table as TableIcon, Search, AlertCircle, Zap } from 'lucide-react'
 
 export default function DeveloperSearch() {
   const [searchQuery, setSearchQuery] = useState('')
