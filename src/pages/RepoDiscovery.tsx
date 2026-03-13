@@ -33,32 +33,35 @@ export default function RepoDiscovery() {
     setError(null)
     setCurrentPage(1)
     try {
-      console.log('[REPO SEARCH] Calling bountylabClient.searchRepositories...', { searchQuery, filters })
+      // Build filters object, only include if at least one filter is set
+      const filtersToSend = {} as any;
+      if (filters.language) filtersToSend.language = filters.language;
+      if (filters.min_stars) filtersToSend.min_stars = parseInt(filters.min_stars);
+      if (filters.max_stars) filtersToSend.max_stars = parseInt(filters.max_stars);
+      if (filters.size) filtersToSend.size = filters.size;
+      if (filters.sort_by) filtersToSend.sort_by = filters.sort_by;
+      const hasAnyFilter = Object.keys(filtersToSend).length > 0;
+
+      console.log('[REPO SEARCH] Calling bountylabClient.searchRepositories...', { searchQuery, filters: hasAnyFilter ? filtersToSend : undefined });
       const response = await bountylabClient.searchRepositories(
         searchQuery,
-        {
-          language: filters.language || undefined,
-          min_stars: filters.min_stars ? parseInt(filters.min_stars) : undefined,
-          max_stars: filters.max_stars ? parseInt(filters.max_stars) : undefined,
-          size: filters.size || undefined,
-          sort_by: filters.sort_by,
-        },
+        hasAnyFilter ? filtersToSend : undefined,
         1,
         20
-      )
-      console.log('[REPO SEARCH] Search succeeded:', { itemsFound: response.items.length, totalPages: response.total_pages, firstItem: response.items[0] })
-      setRepos(response.items)
-      setTotalPages(response.total_pages)
+      );
+      console.log('[REPO SEARCH] Search succeeded:', { itemsFound: response.items.length, totalPages: response.total_pages, firstItem: response.items[0] });
+      setRepos(response.items);
+      setTotalPages(response.total_pages);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to search repositories'
-      console.error('[REPO SEARCH] Search error caught:', errorMsg, err)
+      const errorMsg = err instanceof Error ? err.message : 'Failed to search repositories';
+      console.error('[REPO SEARCH] Search error caught:', errorMsg, err);
       if (err instanceof Error && err.stack) {
-        console.error('[REPO SEARCH] Error stack:', err.stack)
+        console.error('[REPO SEARCH] Error stack:', err.stack);
       }
-      setError(errorMsg)
-      setRepos([])
+      setError(errorMsg);
+      setRepos([]);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
