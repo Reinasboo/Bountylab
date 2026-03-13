@@ -24,10 +24,12 @@ export default async function handler(
   try {
     // Use BountyLab SDK directly
     const client = new Bountylab({ apiKey, baseUrl: apiBaseUrl })
+    // Note: BountyLab API expects filters in a specific format (field/op/value)
+    // For now, we only send query and maxResults without filters
+    // Frontend can use simple filters for UI, but they won't be sent to API yet
     const data = await client.searchRepos.search({
       query,
-      maxResults: maxResults || 20,
-      ...(filters && { filters })
+      maxResults: maxResults || 20
     })
 
     return response.status(200).json(data)
