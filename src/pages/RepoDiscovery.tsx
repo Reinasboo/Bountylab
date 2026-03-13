@@ -42,22 +42,16 @@ export default function RepoDiscovery() {
       if (filters.sort_by) filtersToSend.sort_by = filters.sort_by;
       const hasAnyFilter = Object.keys(filtersToSend).length > 0;
 
-      console.log('[REPO SEARCH] Calling bountylabClient.searchRepositories...', { searchQuery, filters: hasAnyFilter ? filtersToSend : undefined });
       const response = await bountylabClient.searchRepositories(
         searchQuery,
         hasAnyFilter ? filtersToSend : undefined,
         1,
         20
       );
-      console.log('[REPO SEARCH] Search succeeded:', { itemsFound: response.items.length, totalPages: response.total_pages, firstItem: response.items[0] });
       setRepos(response.items);
       setTotalPages(response.total_pages);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to search repositories';
-      console.error('[REPO SEARCH] Search error caught:', errorMsg, err);
-      if (err instanceof Error && err.stack) {
-        console.error('[REPO SEARCH] Error stack:', err.stack);
-      }
       setError(errorMsg);
       setRepos([]);
     } finally {

@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
 import { bountylabClient } from '@/api/bountylabClient'
 import { Developer, SearchFilters } from '@/types/developer'
-import { testAPIConnectivity } from '@/utils/test-api'
 import { DeveloperCard } from '@/components/DeveloperCard'
 import { DeveloperTable } from '@/components/DeveloperTable'
 import { DeveloperFilters } from '@/components/DeveloperFilters'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader, Grid, Table as TableIcon, Search, AlertCircle, Zap, Wrench } from 'lucide-react'
+import { Loader, Grid, Table as TableIcon, Search, AlertCircle } from 'lucide-react'
 
 export default function DeveloperSearch() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -19,97 +18,34 @@ export default function DeveloperSearch() {
   const [totalPages, setTotalPages] = useState(0)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
 
-  // Log SDK initialization on mount
-  useEffect(() => {
-    console.log('='.repeat(70))
-    console.log('🔍 DeveloperSearch Component Mounted')
-    console.log('='.repeat(70))
-    
-    // Check environment
-    const apiKey = import.meta.env.VITE_BOUNTYLAB_API_KEY
-    console.log('📋 Environment Check:')
-    console.log('  - VITE_BOUNTYLAB_API_KEY:', apiKey ? `✅ Present (${apiKey.length} chars)` : '❌ MISSING')
-    console.log('  - API Key prefix:', apiKey ? apiKey.substring(0, 15) + '...' : 'N/A')
-    
-    // Test import
-    import('@bountylab/bountylab').then((module) => {
-      console.log('📦 SDK Import:', '✅ Success')
-      const Bountylab = module.default
-      
-      if (apiKey) {
-        try {
-          const client = new Bountylab({ apiKey })
-          console.log('🚀 SDK Instance:', { 
-            created: true,
-            hasSearchUsers: !!client.searchUsers,
-            hasSearchMethod: !!client.searchUsers?.search
-          })
-        } catch (e) {
-          console.error('🚀 SDK Instance:', 'Error -', e instanceof Error ? e.message : String(e))
-        }
-      }
-    }).catch((e) => {
-      console.log('📦 SDK Import:', '❌ Failed -', e.message)
-    })
-    
-    console.log('='.repeat(70))
-  }, [])
+
 
   const handleSearch = async () => {
-    console.log('🔍 Search button clicked', { searchQuery, filters })
     if (!searchQuery.trim()) {
-      console.warn('⚠️ Search query is empty')
       setError('Please enter a search query')
       return
     }
     setIsLoading(true)
     setError(null)
-    console.log('📍 Starting search for:', searchQuery)
     try {
-      console.log('📞 Calling bountylabClient.searchDevelopers...')
       const response = await bountylabClient.searchDevelopers(
         searchQuery,
         filters,
         currentPage,
         20
       )
-      console.log('✅ Search succeeded:', { 
-        itemsFound: response.items.length, 
-        totalPages: response.total_pages,
-        firstItem: response.items[0],
-      })
       setDevelopers(response.items)
       setTotalPages(response.total_pages)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to search developers'
-      console.error('❌ Search error caught:', errorMsg, err)
-      if (err instanceof Error && err.stack) {
-        console.error('❌ Error stack:', err.stack)
-      }
       setError(errorMsg)
       setDevelopers([])
     } finally {
       setIsLoading(false)
-      console.log('✓ Search operation complete')
     }
   }
 
-  const handleTestAPI = async () => {
-    console.log('🧪 Testing API connectivity...')
-    try {
-      await testAPIConnectivity()
-      console.log('✅ API connectivity test completed')
-    } catch (err) {
-      console.error('❌ API connectivity test failed:', err)
-    }
-  }
 
-  const handleTestLog = () => {
-    console.log('✅ Console panel TEST LOG - this should appear in the debug panel')
-    console.info('ℹ️ This is an info message')
-    console.warn('⚠️ This is a warning message')
-    console.error('❌ This is an error message')
-  }
 
   useEffect(() => {
     setCurrentPage(1)
@@ -177,28 +113,6 @@ export default function DeveloperSearch() {
                       Search
                     </>
                   )}
-                </Button>
-                <Button 
-                  onClick={handleTestAPI} 
-                  disabled={isLoading}
-                  variant="outline"
-                  size="lg"
-                  className="gap-2 px-4 font-semibold whitespace-nowrap"
-                  title="Test API connectivity (check console)"
-                >
-                  <Wrench size={18} />
-                  <span className="hidden sm:inline">Test API</span>
-                </Button>
-                <Button 
-                  onClick={handleTestLog} 
-                  disabled={isLoading}
-                  variant="outline"
-                  size="lg"
-                  className="gap-2 px-4 font-semibold whitespace-nowrap"
-                  title="Test console logging - check debug panel"
-                >
-                  <Zap size={18} />
-                  <span className="hidden sm:inline">Test Log</span>
                 </Button>
               </div>
 
