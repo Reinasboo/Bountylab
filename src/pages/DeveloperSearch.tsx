@@ -94,6 +94,16 @@ export default function DeveloperSearch() {
     }
   }
 
+  const handleTestAPI = async () => {
+    console.log('🧪 Testing API connectivity...')
+    try {
+      await testAPIConnectivity()
+      console.log('✅ API connectivity test completed')
+    } catch (err) {
+      console.error('❌ API connectivity test failed:', err)
+    }
+  }
+
   const handleTestLog = () => {
     console.log('✅ Console panel TEST LOG - this should appear in the debug panel')
     console.info('ℹ️ This is an info message')
