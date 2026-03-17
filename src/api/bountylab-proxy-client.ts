@@ -84,6 +84,13 @@ class BountyLabProxyClient {
         })
         if (!response.ok) {
           const error = await response.json().catch(() => ({ error: response.statusText }))
+          
+          // Handle rate limit errors specially
+          if (response.status === 429) {
+            const resetTime = error.details?.resetsAt ? new Date(error.details.resetsAt).toLocaleTimeString() : 'later'
+            throw new Error(`Credit limit exceeded. Please try again at ${resetTime}`)
+          }
+          
           throw new Error(error.error || `Search failed with status ${response.status}`)
         }
         const data = await response.json()
@@ -102,6 +109,13 @@ class BountyLabProxyClient {
         })
         if (!response.ok) {
           const error = await response.json().catch(() => ({ error: response.statusText }))
+          
+          // Handle rate limit errors specially
+          if (response.status === 429) {
+            const resetTime = error.details?.resetsAt ? new Date(error.details.resetsAt).toLocaleTimeString() : 'later'
+            throw new Error(`Credit limit exceeded. Please try again at ${resetTime}`)
+          }
+          
           throw new Error(error.error || `Search failed with status ${response.status}`)
         }
         const data = await response.json()
