@@ -96,6 +96,23 @@ export function DeveloperFilters({
         </div>
 
         <div>
+          <Label htmlFor="activity_level">Activity Level</Label>
+          <select
+            id="activity_level"
+            value={filters.activity_level || ''}
+            onChange={e =>
+              handleInputChange('activity_level', e.target.value as any)
+            }
+            className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Any Activity</option>
+            <option value="active">Active (DevRank ≥ 7)</option>
+            <option value="moderate">Moderate (DevRank 4-6)</option>
+            <option value="low">Low (DevRank &lt; 4)</option>
+          </select>
+        </div>
+
+        <div>
           <Label htmlFor="sort_by">Sort By</Label>
           <select
             id="sort_by"
