@@ -25,7 +25,7 @@ export interface Repository {
   id: string
   name: string
   full_name: string
-  owner: Developer
+  owner: string // GitHub username
   description?: string
   url: string
   homepage?: string
@@ -36,8 +36,11 @@ export interface Repository {
   open_issues_count: number
   pushed_at: string
   created_at: string
+  updated_at: string
   topics: string[]
   size: number
+  stars?: number // alias for stargazers_count
+  forks?: number // alias for forks_count
   contributors?: Developer[]
 }
 

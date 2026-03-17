@@ -15,10 +15,16 @@ export interface SearchUsersResponse {
     company?: string
     location?: string
     followers?: number
+    following?: number
+    publicRepos?: number
     publicRepoContributions?: number
     devRank?: number
     topLanguages?: string[]
     githubId?: string
+    createdAt?: string
+    updatedAt?: string
+    publicGists?: number
+    [key: string]: any // Allow additional fields from API
   }>
   count: number
 }
@@ -36,7 +42,13 @@ export interface SearchReposResponse {
     language?: string
     url?: string
     updatedAt?: string
+    createdAt?: string
     githubId?: string
+    size?: number
+    topics?: string[]
+    openIssuesCount?: number
+    defaultBranch?: string
+    [key: string]: any // Allow additional fields from API
   }>
   count: number
 }

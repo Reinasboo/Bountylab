@@ -120,25 +120,32 @@ class BountyLabProxyBridge {
       }
 
       // Convert to Developer format
-      let developers = allUsers.map((user: any) => ({
-        id: user.githubId || user.id,
-        login: user.login,
-        name: user.displayName || '',
-        avatar_url: `https://avatars.githubusercontent.com/${user.login}`,
-        bio: user.bio || '',
-        company: user.company || '',
-        location: user.location || '',
-        followers: user.followers || 0,
-        total_stars: user.publicRepoContributions || 0,
-        devrank_score: user.devRank || 0,
-        top_languages: user.topLanguages || [],
-        github_url: `https://github.com/${user.login}`,
-        public_repos: 0,
-        following: 0,
-        public_gists: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }) as Developer)
+      let developers = allUsers.map((user: any) => {
+        // Extract all available data from API response
+        const dev: Developer = {
+          id: user.githubId || user.id || '',
+          login: user.login || '',
+          name: user.displayName || user.name || '',
+          bio: user.bio || '',
+          company: user.company || '',
+          location: user.location || '',
+          followers: user.followers ?? 0,
+          following: user.following ?? 0,
+          public_repos: user.publicRepos ?? user.public_repos ?? 0,
+          public_gists: user.publicGists ?? user.public_gists ?? 0,
+          total_stars: user.publicRepoContributions ?? user.total_stars ?? 0,
+          devrank_score: user.devRank ?? user.devrank_score ?? 0,
+          top_languages: user.topLanguages ?? user.top_languages ?? [],
+          avatar_url: `https://avatars.githubusercontent.com/${user.login || user.id}`,
+          github_url: `https://github.com/${user.login || user.id}`,
+          created_at: user.createdAt || user.created_at || new Date().toISOString(),
+          updated_at: user.updatedAt || user.updated_at || new Date().toISOString(),
+          email: user.email,
+          hiring: user.hiring,
+          recent_activity: user.recent_activity,
+        }
+        return dev
+      })
 
       // Apply client-side filters
       developers = this.applyDeveloperFilters(developers, filters)
@@ -188,29 +195,30 @@ class BountyLabProxyBridge {
 
       // Convert to Repository format
       let repos = allRepos.map((repo: any) => {
-        const item: any = {
-          id: repo.githubId || repo.id,
-          name: repo.name,
-          owner: repo.owner?.login || repo.ownerLogin || '',
+        // Extract all available data from API response
+        const ownerLogin = repo.owner?.login || repo.ownerLogin || 'unknown'
+        const item: Repository = {
+          id: repo.githubId || repo.id || '',
+          name: repo.name || '',
+          full_name: repo.full_name || `${ownerLogin}/${repo.name}`,
+          owner: ownerLogin,
           description: repo.description || '',
-          url: repo.url || `https://github.com/${repo.owner?.login || ''}/${repo.name}`,
-          stars: repo.stargazerCount || 0,
-          forks: repo.forkCount || 0,
+          url: repo.url || repo.html_url || `https://github.com/${ownerLogin}/${repo.name}`,
+          homepage: repo.homepage,
+          stargazers_count: repo.stargazerCount ?? repo.stargazers_count ?? 0,
+          watchers_count: repo.watchers_count ?? repo.stargazerCount ?? 0,
           language: repo.primaryLanguage?.name || repo.language || '',
-          updated_at: repo.updatedAt || new Date().toISOString(),
-          full_name: `${repo.owner?.login || ''}/${repo.name}`,
-          stargazers_count: repo.stargazerCount || 0,
-          watchers_count: repo.stargazerCount || 0,
-          forks_count: repo.forkCount || 0,
-          open_issues_count: 0,
-          default_branch: 'main',
-          network_count: 0,
-          pushed_at: repo.updatedAt || new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          topics: [],
-          size: repo.size || 0,
+          forks_count: repo.forkCount ?? repo.forks_count ?? 0,
+          open_issues_count: repo.openIssuesCount ?? repo.open_issues_count ?? 0,
+          pushed_at: repo.pushedAt || repo.pushed_at || repo.updatedAt || new Date().toISOString(),
+          created_at: repo.createdAt || repo.created_at || new Date().toISOString(),
+          updated_at: repo.updatedAt || repo.updated_at || new Date().toISOString(),
+          topics: repo.topics || repo.topicNames || [],
+          size: repo.size ?? 0,
+          stars: repo.stargazerCount ?? repo.stargazers_count ?? 0,
+          forks: repo.forkCount ?? repo.forks_count ?? 0,
         }
-        return item as Repository
+        return item
       })
 
       // Apply client-side filters
