@@ -98,6 +98,54 @@ class BountyLabProxyBridge {
     }
   }
 
+  /**
+   * Enrich developers with detailed profile data from GitHub
+   */
+  private async enrichDevelopers(developers: Developer[]): Promise<Developer[]> {
+    if (developers.length === 0) return []
+
+    try {
+      const logins = developers.map(d => d.login).filter(Boolean)
+      if (logins.length === 0) return developers
+
+      // Fetch raw detailed data
+      const enrichedData = await bountyLabProxyClient.getRawUsersByLogin(logins)
+      const userMap = new Map<string, any>()
+      
+      if (enrichedData.users && Array.isArray(enrichedData.users)) {
+        enrichedData.users.forEach((user: any) => {
+          userMap.set(user.login, user)
+        })
+      }
+
+      // Merge enriched data with original developers
+      return developers.map(dev => {
+        const enriched = userMap.get(dev.login)
+        if (!enriched) return dev
+
+        return {
+          ...dev,
+          followers: enriched.followers ?? enriched.publicFollowers ?? dev.followers ?? 0,
+          following: enriched.following ?? enriched.publicFollowing ?? dev.following ?? 0,
+          public_repos: enriched.publicRepos ?? enriched.public_repos ?? dev.public_repos ?? 0,
+          public_gists: enriched.publicGists ?? enriched.public_gists ?? dev.public_gists ?? 0,
+          total_stars: enriched.publicRepoContributions ?? enriched.stargazerCount ?? dev.total_stars ?? 0,
+          devrank_score: enriched.devRank ?? dev.devrank_score ?? 0,
+          top_languages: enriched.topLanguages ?? dev.top_languages ?? [],
+          bio: enriched.bio || dev.bio || '',
+          company: enriched.company || dev.company || '',
+          location: enriched.location || dev.location || '',
+          email: enriched.email || dev.email,
+          created_at: enriched.createdAt || dev.created_at,
+          updated_at: enriched.updatedAt || dev.updated_at,
+        }
+      })
+    } catch (error) {
+      console.warn('Failed to enrich developers:', error)
+      return developers // Return original data if enrichment fails
+    }
+  }
+
   async searchDevelopers(
     query: string,
     filters?: SearchFilters,
@@ -158,8 +206,11 @@ class BountyLabProxyBridge {
       const endIdx = startIdx + per_page
       const items = developers.slice(startIdx, endIdx)
 
+      // Enrich only the results that will be displayed (more efficient)
+      const enrichedItems = await this.enrichDevelopers(items)
+
       const result: PaginatedResponse<Developer> = {
-        items,
+        items: enrichedItems,
         total: developers.length,
         page,
         per_page,
@@ -170,6 +221,55 @@ class BountyLabProxyBridge {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       throw new Error(`Developer search failed: ${errorMessage}`)
+    }
+  }
+
+  /**
+   * Enrich repositories with detailed data from GitHub
+   */
+  private async enrichRepositories(repos: Repository[]): Promise<Repository[]> {
+    if (repos.length === 0) return []
+
+    try {
+      const fullNames = repos.map(r => r.full_name).filter(Boolean)
+      if (fullNames.length === 0) return repos
+
+      // Fetch raw detailed data
+      const enrichedData = await bountyLabProxyClient.getRawReposByFullname(fullNames)
+      const repoMap = new Map<string, any>()
+      
+      if (enrichedData.repositories && Array.isArray(enrichedData.repositories)) {
+        enrichedData.repositories.forEach((repo: any) => {
+          repoMap.set(repo.full_name || `${repo.owner?.login}/${repo.name}`, repo)
+        })
+      }
+
+      // Merge enriched data with original repos
+      return repos.map(repo => {
+        const enriched = repoMap.get(repo.full_name)
+        if (!enriched) return repo
+
+        return {
+          ...repo,
+          stargazers_count: enriched.stargazerCount ?? enriched.stargazers_count ?? repo.stargazers_count ?? 0,
+          forks_count: enriched.forkCount ?? enriched.forks_count ?? repo.forks_count ?? 0,
+          watchers_count: enriched.watchers_count ?? enriched.stargazerCount ?? repo.watchers_count ?? 0,
+          open_issues_count: enriched.openIssuesCount ?? enriched.open_issues_count ?? repo.open_issues_count ?? 0,
+          size: enriched.size ?? repo.size ?? 0,
+          language: enriched.primaryLanguage?.name || enriched.language || repo.language || '',
+          topics: enriched.topics || enriched.topicNames || repo.topics || [],
+          description: enriched.description || repo.description || '',
+          homepage: enriched.homepage || repo.homepage,
+          pushed_at: enriched.pushedAt || enriched.pushed_at || repo.pushed_at,
+          created_at: enriched.createdAt || enriched.created_at || repo.created_at,
+          updated_at: enriched.updatedAt || enriched.updated_at || repo.updated_at,
+          stars: enriched.stargazerCount ?? enriched.stargazers_count ?? repo.stars ?? 0,
+          forks: enriched.forkCount ?? enriched.forks_count ?? repo.forks ?? 0,
+        }
+      })
+    } catch (error) {
+      console.warn('Failed to enrich repositories:', error)
+      return repos // Return original data if enrichment fails
     }
   }
 
@@ -276,8 +376,11 @@ class BountyLabProxyBridge {
       const endIdx = startIdx + per_page
       const items = repos.slice(startIdx, endIdx)
 
+      // Enrich only the results that will be displayed (more efficient)
+      const enrichedItems = await this.enrichRepositories(items)
+
       const result: PaginatedResponse<Repository> = {
-        items,
+        items: enrichedItems,
         total: repos.length,
         page,
         per_page,
